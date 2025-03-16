@@ -54,7 +54,7 @@
         {
           "id": "geminibot-sidebar-chat",
           "title": "GeminiBot",
-          "icon": "media/icon.png"
+          "icon": "media/icon64x64.png"
         }
       ]
     },
@@ -64,7 +64,7 @@
           "id": "geminibotChatView",
           "name": "GeminiBot",
           "contextualTitle": "GeminiBot",
-          "icon": "media/icon.png",
+          "icon": "media/icon64x64.png",
           "type": "webview"
         }
       ]

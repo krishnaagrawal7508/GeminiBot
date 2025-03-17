@@ -28,6 +28,10 @@
       {
         "command": "geminibot.refactorCode",
         "title": "GeminiBot: Refactor Selected Code"
+      },
+      {
+        "command": "geminibot.removeApiKey",
+        "title": "GeminiBot: Remove API Key"
       }
     ],
     "menus": {

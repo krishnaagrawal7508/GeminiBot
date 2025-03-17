@@ -1,26 +1,35 @@
 import * as vscode from 'vscode';
 
 export function showResultInWebview(content: string, title: string) {
-    const panel = vscode.window.createWebviewPanel(
-        'geminiResult',
-        title,
-        vscode.ViewColumn.Beside,
-        { enableScripts: true }
-    );
+  const panel = vscode.window.createWebviewPanel(
+    'geminiResult',
+    title,
+    vscode.ViewColumn.Beside,
+    { enableScripts: true }
+  );
 
-    panel.webview.html = `
+  panel.webview.html = getWebviewContent(content, title);
+}
+
+function getWebviewContent(content: string, title: string): string {
+  const formattedContent = formatContent(content);
+
+  return `
     <!DOCTYPE html>
     <html lang="en">
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>${title}</title>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
       <style>
         body { 
           font-family: var(--vscode-font-family); 
           padding: 20px; 
           line-height: 1.5;
           color: var(--vscode-foreground);
+          background: var(--vscode-editor-background);
         }
         pre { 
           background-color: var(--vscode-editor-background); 
@@ -28,6 +37,8 @@ export function showResultInWebview(content: string, title: string) {
           border-radius: 5px; 
           overflow: auto;
           font-family: var(--vscode-editor-font-family);
+          white-space: pre-wrap;
+          word-wrap: break-word;
         }
         code {
           font-family: var(--vscode-editor-font-family);
@@ -38,29 +49,22 @@ export function showResultInWebview(content: string, title: string) {
       </style>
     </head>
     <body>
-      ${formatContent(content)}
+      ${formattedContent}
+      <script>hljs.highlightAll();</script>
     </body>
     </html>
   `;
 }
 
 function formatContent(content: string): string {
-    // Convert markdown-style code blocks to HTML
-    let formattedContent = content.replace(/```(\w*)\n([\s\S]*?)```/g, (_, language, code) => {
-        return `<pre><code class="language-${language}">${escapeHtml(code)}</code></pre>`;
-    });
+  console.log(content);
+  
+  const formattedText = content
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold text
+    .replace(/`([^`]+)`/g, '<code>$1</code>') // Inline code
+    .replace(/\n\n/g, '</p><p>') // Paragraph breaks
+    .replace(/\n\* (.*?)\*/g, '<li>$1</li>') // List items
+    .replace(/```([^`]+)```/gs, '<pre><code>$1</code></pre>'); // Code blocks
 
-    // Convert line breaks to <br> tags
-    formattedContent = formattedContent.replace(/\n/g, '<br>');
-
-    return formattedContent;
-}
-
-function escapeHtml(text: string): string {
-    return text
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
+  return formattedText
 }

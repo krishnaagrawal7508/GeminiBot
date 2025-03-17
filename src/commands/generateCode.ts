@@ -12,7 +12,8 @@ export function registerGenerateCodeCommand(
             return;
         }
 
-        const selectedText = editor.document.getText(editor.selection);
+        const selection = editor.selection;
+        const selectedText = editor.document.getText(selection);
         if (!selectedText) {
             vscode.window.showErrorMessage('No comments selected');
             return;
@@ -36,15 +37,15 @@ export function registerGenerateCodeCommand(
                 async () => {
                     try {
                         const generatedCode = await geminiApi.getCompletion(
-                            `Given these requirements or comments:\n\n${selectedText}\n\nGenerate code in ${documentLanguage}. Only provide the code, no explanations.`
+                            `Given these requirements or comments:\n\n${selectedText}\n\nGenerate code in ${documentLanguage}. Only provide the code, 
+                            no explanations also no use of \` or use of any language word in your code.`
                         );
 
-                        // Create a new document with the generated code
-                        const document = await vscode.workspace.openTextDocument({
-                            content: generatedCode,
-                            language: documentLanguage
+                        // Insert code below the selected comment
+                        editor.edit(editBuilder => {
+                            editBuilder.insert(selection.end, `\n\n${generatedCode}`);
                         });
-                        await vscode.window.showTextDocument(document);
+
                     } catch (error) {
                         let errorMessage = 'Error generating code';
                         if (error instanceof Error) {

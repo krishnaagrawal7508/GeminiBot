@@ -33,7 +33,7 @@ export class GeminiApi {
     /**
      * Save API key to extension storage
      */
-    public async setApiKey(apiKey: string): Promise<void> {
+    public async setApiKey(apiKey: string | undefined): Promise<void> {
         await this.context.globalState.update('geminiApiKey', apiKey);
     }
 

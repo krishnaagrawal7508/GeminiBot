@@ -18,6 +18,10 @@
         "title": "GeminiBot: Set API Key"
       },
       {
+        "command": "geminibot.removeApiKey",
+        "title": "GeminiBot: Remove API Key"
+      },
+      {
         "command": "geminibot.explainCode",
         "title": "GeminiBot: Explain Selected Code"
       },
@@ -28,10 +32,6 @@
       {
         "command": "geminibot.refactorCode",
         "title": "GeminiBot: Refactor Selected Code"
-      },
-      {
-        "command": "geminibot.removeApiKey",
-        "title": "GeminiBot: Remove API Key"
       }
     ],
     "menus": {

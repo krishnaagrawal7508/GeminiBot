@@ -46,6 +46,12 @@ export class ChatPanelProvider implements vscode.WebviewViewProvider {
                 case 'setApiKey':
                     await this.promptForApiKey();
                     break;
+                case 'getWorkspaceFiles':
+                    await this.getWorkspaceFiles(message.query);
+                    break;
+                case 'getFileContent':
+                    await this.getFileContent(message.filePath);
+                    break;
             }
         });
 
@@ -65,8 +71,11 @@ export class ChatPanelProvider implements vscode.WebviewViewProvider {
             return;
         }
 
+        // Process file references in the message
+        const processedMessage = await this.processFileReferences(text);
+
         // Add user message to history
-        this._chatHistory.push({ role: 'user', content: text });
+        this._chatHistory.push({ role: 'user', content: processedMessage });
 
         try {
             this._view.webview.postMessage({
@@ -79,7 +88,6 @@ export class ChatPanelProvider implements vscode.WebviewViewProvider {
             // Add response to history
             this._chatHistory.push({ role: 'model', content: response });
 
-            // Send response to webview
             // Send response to webview
             this._view.webview.postMessage({
                 command: 'receiveMessage',
@@ -99,6 +107,100 @@ export class ChatPanelProvider implements vscode.WebviewViewProvider {
         } finally {
             this._view.webview.postMessage({
                 command: 'stopLoading'
+            });
+        }
+    }
+
+    private async processFileReferences(text: string): Promise<string> {
+        // Regular expression to match @file_path patterns
+        const taggedFileRegex = /@([^\s]+)/g;
+        let match;
+        let processedText = text;
+        
+        while ((match = taggedFileRegex.exec(text)) !== null) {
+            const taggedFilePath = match[1];
+            try {
+                // Get the file content
+                const fileContent = await this.getFileContentFromPath(taggedFilePath);
+                
+                // Replace the @file_path with a comment indicating the file was included
+                processedText = processedText.replace(
+                    match[0], 
+                    `[File: ${taggedFilePath}]\n\`\`\`\n${fileContent}\n\`\`\``
+                );
+            } catch (error) {
+                console.error(`Error processing file reference ${taggedFilePath}:`, error);
+            }
+        }
+        
+        return processedText;
+    }
+
+    private async getFileContentFromPath(relativeFilePath: string): Promise<string> {
+        if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
+            throw new Error('No workspace folder is open');
+        }
+        
+        const workspacePath = vscode.workspace.workspaceFolders[0].uri.fsPath;
+        const fullPath = path.join(workspacePath, relativeFilePath);
+        
+        try {
+            return fs.readFileSync(fullPath, 'utf8');
+        } catch (error) {
+            throw new Error(`Could not read file ${relativeFilePath}`);
+        }
+    }
+
+    private async getWorkspaceFiles(query: string) {
+        if (!this._view || !vscode.workspace.workspaceFolders) {
+            return;
+        }
+
+        try {
+            const workspaceRoot = vscode.workspace.workspaceFolders[0].uri.fsPath;
+            const files = await vscode.workspace.findFiles('**/*');
+            
+            // Filter files based on the query and convert to relative paths
+            const filteredFiles = files
+                .filter(file => {
+                    const relativePath = path.relative(workspaceRoot, file.fsPath);
+                    return relativePath.toLowerCase().includes(query.toLowerCase());
+                })
+                .map(file => {
+                    const relativePath = path.relative(workspaceRoot, file.fsPath);
+                    return {
+                        path: relativePath,
+                        name: path.basename(file.fsPath)
+                    };
+                })
+                .slice(0, 10); // Limit results
+            
+            this._view.webview.postMessage({
+                command: 'workspaceFiles',
+                files: filteredFiles
+            });
+        } catch (error) {
+            console.error('Error fetching workspace files:', error);
+        }
+    }
+
+    private async getFileContent(filePath: string) {
+        if (!this._view) {
+            return;
+        }
+
+        try {
+            const content = await this.getFileContentFromPath(filePath);
+            this._view.webview.postMessage({
+                command: 'fileContent',
+                path: filePath,
+                content: content
+            });
+        } catch (error) {
+            console.error('Error fetching file content:', error);
+            this._view.webview.postMessage({
+                command: 'error',
+                message: `Could not read file ${filePath}`
             });
         }
     }

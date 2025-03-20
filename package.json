@@ -99,5 +99,8 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/krishnaagrawal7508/GeminiBot.git"
+  },
+  "dependencies": {
+    "marked": "^15.0.7"
   }
 }

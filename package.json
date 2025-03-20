@@ -2,7 +2,7 @@
   "name": "geminibot",
   "displayName": "GeminiAiBot",
   "description": "AI coding assistant powered by Google's Gemini",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "publisher": "KrisnaAgraw",
   "engines": {
     "vscode": "^1.60.0"
@@ -103,5 +103,15 @@
   "dependencies": {
     "marked": "^15.0.7"
   },
-  "extensionKind": ["workspace"]
+  "extensionKind": [
+    "workspace"
+  ],
+  "files": [
+    "out/",
+    "src/",
+    "media/",
+    "src/views/chatPanel/chatView.html",
+    "package.json",
+    "README.md"
+  ]
 }

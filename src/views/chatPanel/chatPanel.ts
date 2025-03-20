@@ -34,7 +34,7 @@ export class ChatPanelProvider implements vscode.WebviewViewProvider {
             webviewView.webview.html = html;
         }).catch(error => {
             console.error("Failed to load webview HTML:", error);
-            webviewView.webview.html = `<h2 style="color: red;">Failed to load chat panel</h2>`;
+            webviewView.webview.html = `<h1 style="color: red;">Failed to load chat panel</h1>`;
         });
         
         if (!this._view) {

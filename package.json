@@ -1,8 +1,9 @@
 {
   "name": "geminibot",
-  "displayName": "GeminiBot",
+  "displayName": "GeminiAiBot",
   "description": "AI coding assistant powered by Google's Gemini",
   "version": "0.1.0",
+  "publisher": "KrisnaAgraw",
   "engines": {
     "vscode": "^1.60.0"
   },
@@ -94,5 +95,9 @@
     "mocha": "^8.4.0",
     "typescript": "^4.3.2",
     "vscode-test": "^1.5.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/krishnaagrawal7508/GeminiBot.git"
   }
 }

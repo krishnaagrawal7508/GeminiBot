@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import * as fs from 'fs';
 import { GeminiApi, ChatMessage } from '../../api/geminiApi';
 
 export class ChatPanelProvider implements vscode.WebviewViewProvider {
@@ -14,13 +13,13 @@ export class ChatPanelProvider implements vscode.WebviewViewProvider {
     constructor(context: vscode.ExtensionContext, geminiApi: GeminiApi) {
         this._context = context;
         this._geminiApi = geminiApi;
-        console.log('ChatPanelProvider Initialized !'); 
+        console.log('ChatPanelProvider Initialized !');
     }
-    
+
     public resolveWebviewView(
         webviewView: vscode.WebviewView
     ) {
-        console.log('resolveWebviewView called'); 
+        console.log('resolveWebviewView called');
         this._view = webviewView;
 
         webviewView.webview.options = {
@@ -31,7 +30,11 @@ export class ChatPanelProvider implements vscode.WebviewViewProvider {
             ]
         };
 
-        webviewView.webview.html = this._getHtmlForWebview();
+        this._getHtmlForWebview().then(html => {
+            webviewView.webview.html = html;
+        }).catch(error => {
+            console.error("Failed to load webview HTML:", error);
+        });
 
         // Handle messages from the webview
         webviewView.webview.onDidReceiveMessage(async (message) => {
@@ -116,23 +119,23 @@ export class ChatPanelProvider implements vscode.WebviewViewProvider {
         const taggedFileRegex = /@([^\s]+)/g;
         let match;
         let processedText = text;
-        
+
         while ((match = taggedFileRegex.exec(text)) !== null) {
             const taggedFilePath = match[1];
             try {
                 // Get the file content
                 const fileContent = await this.getFileContentFromPath(taggedFilePath);
-                
+
                 // Replace the @file_path with a comment indicating the file was included
                 processedText = processedText.replace(
-                    match[0], 
+                    match[0],
                     `[File: ${taggedFilePath}]\n\`\`\`\n${fileContent}\n\`\`\``
                 );
             } catch (error) {
                 console.error(`Error processing file reference ${taggedFilePath}:`, error);
             }
         }
-        
+
         return processedText;
     }
 
@@ -140,12 +143,13 @@ export class ChatPanelProvider implements vscode.WebviewViewProvider {
         if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
             throw new Error('No workspace folder is open');
         }
-        
+
         const workspacePath = vscode.workspace.workspaceFolders[0].uri.fsPath;
-        const fullPath = path.join(workspacePath, relativeFilePath);
-        
+        const fileUri = vscode.Uri.file(path.join(workspacePath, relativeFilePath));
+
         try {
-            return fs.readFileSync(fullPath, 'utf8');
+            const fileData = await vscode.workspace.fs.readFile(fileUri);
+            return Buffer.from(fileData).toString('utf8');
         } catch (error) {
             throw new Error(`Could not read file ${relativeFilePath}`);
         }
@@ -159,7 +163,7 @@ export class ChatPanelProvider implements vscode.WebviewViewProvider {
         try {
             const workspaceRoot = vscode.workspace.workspaceFolders[0].uri.fsPath;
             const files = await vscode.workspace.findFiles('**/*');
-            
+
             // Filter files based on the query and convert to relative paths
             const filteredFiles = files
                 .filter(file => {
@@ -174,7 +178,7 @@ export class ChatPanelProvider implements vscode.WebviewViewProvider {
                     };
                 })
                 .slice(0, 10); // Limit results
-            
+
             this._view.webview.postMessage({
                 command: 'workspaceFiles',
                 files: filteredFiles
@@ -240,16 +244,21 @@ export class ChatPanelProvider implements vscode.WebviewViewProvider {
         }
     }
 
-    private _getHtmlForWebview() {
-        const htmlPath = path.join(this._context.extensionPath, 'src', 'views', 'chatPanel', 'chatView.html');
-        let html = fs.readFileSync(htmlPath, 'utf8');
+    private async _getHtmlForWebview(): Promise<string> {
+        const htmlUri = vscode.Uri.file(path.join(this._context.extensionPath, 'src', 'views', 'chatPanel', 'chatView.html'));
+        try {
+            const fileData = await vscode.workspace.fs.readFile(htmlUri);
+            let html = Buffer.from(fileData).toString('utf8');
 
-        // Replace ${webview.cspSource} with actual content security policy
-        html = html.replace(
-            '${webview.cspSource}',
-            this._view?.webview.cspSource || 'none'
-        );
+            // Replace ${webview.cspSource} with actual CSP value
+            html = html.replace(
+                '${webview.cspSource}',
+                this._view?.webview.cspSource || 'none'
+            );
 
-        return html;
+            return html;
+        } catch (error) {
+            throw new Error('Failed to load chatView.html');
+        }
     }
 }

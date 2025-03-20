@@ -34,7 +34,13 @@ export class ChatPanelProvider implements vscode.WebviewViewProvider {
             webviewView.webview.html = html;
         }).catch(error => {
             console.error("Failed to load webview HTML:", error);
+            webviewView.webview.html = `<h2 style="color: red;">Failed to load chat panel</h2>`;
         });
+        
+        if (!this._view) {
+            console.error("Webview not initialized");
+            return;
+        }
 
         // Handle messages from the webview
         webviewView.webview.onDidReceiveMessage(async (message) => {
@@ -251,10 +257,9 @@ export class ChatPanelProvider implements vscode.WebviewViewProvider {
             let html = Buffer.from(fileData).toString('utf8');
 
             // Replace ${webview.cspSource} with actual CSP value
-            html = html.replace(
-                '${webview.cspSource}',
-                this._view?.webview.cspSource || 'none'
-            );
+            if (this._view) {
+                html = html.replace('${webview.cspSource}', this._view.webview.cspSource);
+            }
 
             return html;
         } catch (error) {

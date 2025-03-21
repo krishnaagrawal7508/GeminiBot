@@ -30,7 +30,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 		context.subscriptions.push(
 			vscode.languages.registerCompletionItemProvider(
-				['javascript', 'typescript', 'python', 'java', 'html', 'css'],
+				['javascript', 'typescript', 'python', 'java', 'html', 'css', 'text', 'rust', 'go'],
 				completionProvider,
 			)
 		);

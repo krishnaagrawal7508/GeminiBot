@@ -25,16 +25,13 @@ export async function activate(context: vscode.ExtensionContext) {
 	// Register completion provider for all languages
 	const config = vscode.workspace.getConfiguration('geminibot');
 	if (config.get<boolean>('enableAutoComplete')) {
-		const triggerCharacters = config.get<string[]>('completionTriggerCharacters') || ['.', '(', '[', '{', ' '];
 
-		const completionProvider = new GeminiCompletionProvider(geminiApi);
-		const selector = { scheme: 'file' }; // Apply to all file types
+		const completionProvider = new GeminiCompletionProvider(geminiApi, context);
 
 		context.subscriptions.push(
 			vscode.languages.registerCompletionItemProvider(
-				selector,
+				['javascript', 'typescript', 'python', 'java', 'html', 'css'],
 				completionProvider,
-				...triggerCharacters
 			)
 		);
 	}

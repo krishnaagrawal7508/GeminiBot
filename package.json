@@ -33,6 +33,11 @@
       {
         "command": "geminibot.refactorCode",
         "title": "GeminiBot: Refactor Selected Code"
+      },
+      {
+        "command": "geminibot.openSettings",
+        "title": "GeminiBot Settings",
+        "icon": "$(gear)"
       }
     ],
     "menus": {
@@ -52,7 +57,49 @@
           "when": "editorHasSelection",
           "group": "GeminiBot"
         }
+      ],
+      "view/title": [
+      {
+        "command": "geminibot.openSettings",
+        "when": "view == geminibotChatView",
+        "group": "navigation"
+      }
       ]
+    },
+    "configuration": {
+      "properties": {
+        "GeminiBot.apiKey": {
+          "default": "Gemini",
+          "description": "To use GeminiBot, press (ctrl+shift+p) and search for 'GeminiBot: Set API Key' in the command palette to set your Gemini API key.",
+          "order": 1,
+          "type": "string"
+        },
+        "GeminiBot.model": {
+          "default": "gemini-pro",
+          "description": "The model to use for GeminiBot",
+          "enum": [
+            "gemini-pro",
+            "gemini-pro-vision",
+            "gemini-ultra"
+          ],
+          "order": 2,
+          "type": "string"
+        },
+        "GeminiBot.temperature": {
+          "default": 0.3,
+          "description": "The temperature of the model (between 0 and 1)",
+          "order": 3,
+          "type": "number"
+        },
+        "geminibot.enableAutoComplete":{
+          "default": true,
+          "description": "Use auto complete feature for automatic code suggestions",
+          "order": 4,
+          "type": "boolean"
+        }
+      },
+      "title": "GeminiBot 🤖",
+      "type": "object"
     },
     "viewsContainers": {
       "activitybar": [

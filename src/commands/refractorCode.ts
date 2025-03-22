@@ -39,9 +39,11 @@ export function registerRefactorCodeCommand(
                             `Refactor the following ${documentLanguage} code to improve readability, performance, and follow best practices. Only provide the refactored code, no explanations:\n\n${selectedText}`
                         );
 
+                        const cleanedCode = cleanGeneratedCode(refactoredCode, documentLanguage);
+
                         // Replace the selected text with the refactored code
                         await editor.edit(editBuilder => {
-                            editBuilder.replace(editor.selection, refactoredCode);
+                            editBuilder.replace(editor.selection, cleanedCode);
                         });
 
                         vscode.window.showInformationMessage('Code refactoring completed!');
@@ -60,4 +62,24 @@ export function registerRefactorCodeCommand(
             vscode.window.showErrorMessage('An error occurred while refactoring code');
         }
     });
+}
+
+function cleanGeneratedCode(code: string, language: string): string {
+    let cleanedCode = code.trim();
+
+    // Remove markdown code block syntax with language identifier
+    const codeBlockRegex = new RegExp(`^\`\`\`(?:${language}|javascript|typescript|js|ts|html|css|python|java|c#|c\\+\\+|ruby|go|php|rust|swift|kotlin|scala|shell|bash|sql|json|xml|yaml|plaintext)?\\s*\\n?`);
+    cleanedCode = cleanedCode.replace(codeBlockRegex, '');
+
+    // Remove trailing code block markers
+    cleanedCode = cleanedCode.replace(/\n?```$/g, '');
+
+    // Remove inline code markers
+    cleanedCode = cleanedCode.replace(/^`|`$/g, '');
+
+    // Remove lines that just contain the language name (e.g., "javascript" or "typescript")
+    const languageLineRegex = new RegExp(`^(?:${language}|javascript|typescript|js|ts|html|css|python|java|c#|c\\+\\+|ruby|go|php|rust|swift|kotlin|scala|shell|bash|sql|json|xml|yaml|plaintext)$`, 'gm');
+    cleanedCode = cleanedCode.replace(languageLineRegex, '');
+
+    return cleanedCode;
 }

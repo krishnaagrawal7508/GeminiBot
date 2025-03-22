@@ -7,8 +7,28 @@
   "engines": {
     "vscode": "^1.60.0"
   },
+  "license": "MIT",
+  "icon": "media/icon-noBG.png",
+  "keywords": [
+    "gemini",
+    "ai",
+    "assistant",
+    "code-generation",
+    "google-ai"
+  ],
+  "homepage": "https://github.com/krishnaagrawal7508/GeminiBot",
+  "bugs": {
+    "url": "https://github.com/krishnaagrawal7508/GeminiBot/issues"
+  },
+  "galleryBanner": {
+    "color": "#C80000",
+    "theme": "dark"
+  },
   "categories": [
-    "Other"
+    "Other",
+    "AI",
+    "Chat",
+    "Debuggers"
   ],
   "activationEvents": [],
   "main": "./out/extension.js",

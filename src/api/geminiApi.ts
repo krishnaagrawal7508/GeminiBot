@@ -51,8 +51,8 @@ export class GeminiApi {
     }
 
     /**
- * Get code completion suggestions with proper formatting
- */
+     * Get code completion suggestions with proper formatting
+    */
     public async getCodeCompletion(
         document: vscode.TextDocument,
         position: vscode.Position,

@@ -27,6 +27,7 @@ export class GeminiApi {
      * Get API key from extension storage
      */
     public async getApiKey(): Promise<string | undefined> {
+        console.log(this.context.globalState.get<string>('geminiApiKey'));
         return this.context.globalState.get<string>('geminiApiKey');
     }
 
@@ -50,33 +51,83 @@ export class GeminiApi {
     }
 
     /**
-     * Get code completion suggestions
-     */
+ * Get code completion suggestions with proper formatting
+ */
     public async getCodeCompletion(
         document: vscode.TextDocument,
         position: vscode.Position,
-        context: string
+        context: string,
+        nextText: string = '',
+        nextLines: string[] = []
     ): Promise<string> {
         const apiKey = await this.getApiKey();
         if (!apiKey) {
             throw new Error('API key not set');
         }
 
+        // Get editor configuration
+        const editorConfig = vscode.workspace.getConfiguration('editor', document.uri);
+        const useSpaces = editorConfig.get<boolean>('insertSpaces', true);
+        const tabSize = editorConfig.get<number>('tabSize', 4);
+        const indentType = useSpaces ? 'spaces' : 'tabs';
+
         const fileExtension = document.fileName.split('.').pop() || '';
         const languageId = document.languageId;
 
-        const prompt = `
-    I'm coding in ${languageId} (file extension: ${fileExtension}).
-    Here's the code context (previous code followed by cursor position):
-    
-    ${context}
-    
-    Provide a single, short completion suggestion for what should come next after the cursor position.
-    Only include the completion text itself, no explanations or formatting.
-    Keep it brief, max 1-2 lines.
-    `;
+        // Get the current line's indentation
+        const currentLine = document.lineAt(position.line).text;
+        const indentMatch = currentLine.match(/^(\s*)/);
+        const currentIndent = indentMatch ? indentMatch[1] : '';
 
-        return this.callGeminiApi(apiKey, prompt);
+        // Additional code context after cursor
+        const afterCursorContext = nextText.length > 0 || nextLines.length > 0 ?
+            `\nText after cursor on current line: ${nextText}\nFollowing lines:\n${nextLines.join('\n')}` : '';
+
+        const prompt = `
+I'm coding in ${languageId} (file extension: ${fileExtension}).
+Editor settings: Using ${indentType} with tabSize=${tabSize}.
+
+Here's the code context (previous code followed by cursor position, marked with |):
+
+${context}|${afterCursorContext}
+
+Provide a single code completion suggestion for what should come immediately after the cursor position.
+Important formatting rules:
+1. Respect the current indentation level
+2. If adding new lines, maintain proper indentation based on code structure
+3. Use ${indentType} for indentation (${tabSize} ${useSpaces ? 'spaces' : 'tab characters'} per level)
+4. Follow standard ${languageId} code style and formatting conventions
+5. For multi-line completions, each line should have appropriate indentation
+
+Only include the completion text itself, no explanations or comments.
+Keep it concise but complete, maximum 10 lines.
+`;
+
+        try {
+            const completion = await this.callGeminiApi(apiKey, prompt);
+
+            // Clean up any extraneous text that might have been included
+            return this.cleanCompletionText(completion);
+        } catch (error) {
+            console.error('Error getting completion from Gemini:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Clean completion text to ensure it's properly formatted
+     */
+    private cleanCompletionText(text: string): string {
+        // Remove markdown code blocks if present
+        text = text.replace(/```(?:\w+)?\n([\s\S]*?)\n```/g, '$1');
+
+        // Remove any "Here's a completion" type of text
+        text = text.replace(/^(?:here(?:'s| is)(?: a| the)? (?:completion|suggestion)(?::)?|I suggest:)\s*/i, '');
+
+        // Remove trailing "Hope this helps" type of text
+        text = text.replace(/\n(?:hope this helps|let me know if you need anything else).*$/i, '');
+
+        return text.trim();
     }
 
     /**

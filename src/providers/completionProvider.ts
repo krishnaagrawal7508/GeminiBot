@@ -1,12 +1,15 @@
 import * as vscode from 'vscode';
 import { GeminiApi } from '../api/geminiApi';
+// You might want to import a formatter library like prettier
+// import * as prettier from 'prettier';
 
 export class GeminiCompletionProvider implements vscode.CompletionItemProvider {
     private _geminiApi: GeminiApi;
     private _lastRequestTime: number = 0;
-    private _cooldownPeriod: number = 50; // Reduced to 50ms for more responsiveness
+    private _cooldownPeriod: number = 20; // Further reduced to 20ms for more frequent suggestions
     private _inlineCompletionProvider?: vscode.Disposable;
     private _context: vscode.ExtensionContext;
+    private _minContextLength: number = 1; // Reduced to 1 character for more suggestions
 
     constructor(geminiApi: GeminiApi, context: vscode.ExtensionContext) {
         this._geminiApi = geminiApi;
@@ -35,26 +38,38 @@ export class GeminiCompletionProvider implements vscode.CompletionItemProvider {
 
                         // Get context around cursor
                         const linePrefix = document.lineAt(position.line).text.substring(0, position.character);
-                        const prevLines = this._getPreviousLines(document, position, 10);
+                        const nextPart = document.lineAt(position.line).text.substring(position.character);
+                        const prevLines = this._getPreviousLines(document, position, 15); // Increased context
+                        const nextLines = this._getNextLines(document, position, 5); // Get following lines too
                         const contextText = prevLines.join('\n') + linePrefix;
 
                         // Skip if we don't have enough context
-                        if (contextText.trim().length < 3) { // Reduced from 5 to 3 for more suggestions
+                        if (contextText.trim().length < this._minContextLength) {
                             return null;
                         }
 
                         this._lastRequestTime = now;
 
                         // Get completion suggestion from Gemini
-                        const completionText = await this._geminiApi.getCodeCompletion(
+                        const rawCompletionText = await this._geminiApi.getCodeCompletion(
                             document,
                             position,
-                            contextText
+                            contextText,
+                            nextPart, // Pass next part of current line
+                            nextLines  // Pass next lines
                         );
 
-                        if (!completionText || token.isCancellationRequested) {
+                        if (!rawCompletionText || token.isCancellationRequested) {
                             return null;
                         }
+
+                        // Format the completion text to match current indentation
+                        const completionText = this._formatCompletionText(
+                            document,
+                            position,
+                            rawCompletionText,
+                            linePrefix
+                        );
 
                         // Create inline completion item
                         const item = new vscode.InlineCompletionItem(
@@ -103,30 +118,42 @@ export class GeminiCompletionProvider implements vscode.CompletionItemProvider {
 
             // Get context around cursor
             const linePrefix = document.lineAt(position.line).text.substring(0, position.character);
-            const prevLines = this._getPreviousLines(document, position, 10);
+            const nextPart = document.lineAt(position.line).text.substring(position.character);
+            const prevLines = this._getPreviousLines(document, position, 15);
+            const nextLines = this._getNextLines(document, position, 5);
             const contextText = prevLines.join('\n') + linePrefix;
 
             // Skip if we don't have enough context
-            if (contextText.trim().length < 3) {
+            if (contextText.trim().length < this._minContextLength) {
                 return null;
             }
 
             this._lastRequestTime = now;
 
             // Get completion suggestion from Gemini
-            const completionText = await this._geminiApi.getCodeCompletion(
+            const rawCompletionText = await this._geminiApi.getCodeCompletion(
                 document,
                 position,
-                contextText
+                contextText,
+                nextPart,
+                nextLines
             );
 
-            if (!completionText || token.isCancellationRequested) {
+            if (!rawCompletionText || token.isCancellationRequested) {
                 return null;
             }
 
+            // Format the completion text to match current indentation
+            const completionText = this._formatCompletionText(
+                document,
+                position,
+                rawCompletionText,
+                linePrefix
+            );
+
             // Create completion item
             const completionItem = new vscode.CompletionItem(
-                completionText,
+                completionText.split('\n')[0], // Only use first line for label
                 vscode.CompletionItemKind.Text
             );
 
@@ -149,6 +176,117 @@ export class GeminiCompletionProvider implements vscode.CompletionItemProvider {
         }
     }
 
+    // Format completion text to match indentation and code style
+    private _formatCompletionText(
+        document: vscode.TextDocument,
+        position: vscode.Position,
+        completionText: string,
+        linePrefix: string
+    ): string {
+        // Get editor configuration for indentation
+        const editorConfig = vscode.workspace.getConfiguration('editor', document.uri);
+        const useSpaces = editorConfig.get<boolean>('insertSpaces', true);
+        const tabSize = editorConfig.get<number>('tabSize', 4);
+        
+        // Get current line indentation
+        const currentIndent = this._getIndentation(linePrefix);
+        const currentIndentLevel = this._getIndentLevel(currentIndent, tabSize, useSpaces);
+        
+        // Split the completion into lines
+        const completionLines = completionText.split('\n');
+        
+        // If there's only one line, return it as is
+        if (completionLines.length === 1) {
+            return completionText;
+        }
+        
+        // Format each line with proper indentation
+        for (let i = 1; i < completionLines.length; i++) {
+            let line = completionLines[i];
+            if (line.trim().length > 0) {
+                // Calculate proper indentation for this line
+                const lineIndent = this._getIndentation(line);
+                const lineIndentLevel = this._getIndentLevel(lineIndent, tabSize, useSpaces);
+                
+                // Calculate relative indentation
+                const relativeIndentLevel = Math.max(lineIndentLevel, currentIndentLevel);
+                
+                // Apply proper indentation using editor settings
+                const properIndent = this._createIndentation(relativeIndentLevel, tabSize, useSpaces);
+                completionLines[i] = properIndent + line.trimLeft();
+            }
+        }
+        
+        // Here you could integrate with a code formatter like Prettier if desired
+        // return this._formatWithPrettier(completionLines.join('\n'), document);
+        
+        // Join lines back together
+        return completionLines.join('\n');
+    }
+
+    // Calculate indent level based on spaces/tabs
+    private _getIndentLevel(indent: string, tabSize: number, useSpaces: boolean): number {
+        if (useSpaces) {
+            return Math.floor(indent.length / tabSize);
+        } else {
+            return indent.split('\t').length - 1;
+        }
+    }
+
+    // Create proper indentation based on editor settings
+    private _createIndentation(level: number, tabSize: number, useSpaces: boolean): string {
+        if (useSpaces) {
+            return ' '.repeat(level * tabSize);
+        } else {
+            return '\t'.repeat(level);
+        }
+    }
+
+    // Get the indentation (whitespace) from the beginning of a line
+    private _getIndentation(line: string): string {
+        const match = line.match(/^(\s*)/);
+        return match ? match[1] : '';
+    }
+
+    // Use a formatter library like Prettier (commented out)
+    /*
+    private _formatWithPrettier(code: string, document: vscode.TextDocument): string {
+        try {
+            // You would need to install and configure prettier
+            // const formatted = prettier.format(code, {
+            //     parser: this._getParserForDocument(document),
+            //     tabWidth: vscode.workspace.getConfiguration('editor').get('tabSize', 4),
+            //     useTabs: !vscode.workspace.getConfiguration('editor').get('insertSpaces', true)
+            // });
+            // return formatted;
+            return code; // Return original code until prettier is implemented
+        } catch (error) {
+            console.error('Error formatting code:', error);
+            return code;
+        }
+    }
+
+    private _getParserForDocument(document: vscode.TextDocument): string {
+        // Map language ID to prettier parser
+        const languageId = document.languageId;
+        switch (languageId) {
+            case 'javascript':
+            case 'typescript':
+            case 'typescriptreact':
+            case 'javascriptreact':
+                return 'typescript';
+            case 'html':
+                return 'html';
+            case 'css':
+                return 'css';
+            case 'json':
+                return 'json';
+            default:
+                return 'babel';
+        }
+    }
+    */
+
     // This function should be called when the extension is deactivated
     dispose() {
         if (this._inlineCompletionProvider) {
@@ -167,6 +305,23 @@ export class GeminiCompletionProvider implements vscode.CompletionItemProvider {
         while (currentLine > 0 && result.length < maxLines) {
             currentLine--;
             result.unshift(document.lineAt(currentLine).text);
+        }
+
+        return result;
+    }
+
+    private _getNextLines(
+        document: vscode.TextDocument,
+        position: vscode.Position,
+        maxLines: number
+    ): string[] {
+        const result: string[] = [];
+        let currentLine = position.line;
+        const lastLine = document.lineCount - 1;
+
+        while (currentLine < lastLine && result.length < maxLines) {
+            currentLine++;
+            result.push(document.lineAt(currentLine).text);
         }
 
         return result;

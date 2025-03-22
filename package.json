@@ -59,11 +59,11 @@
         }
       ],
       "view/title": [
-      {
-        "command": "geminibot.openSettings",
-        "when": "view == geminibotChatView",
-        "group": "navigation"
-      }
+        {
+          "command": "geminibot.openSettings",
+          "when": "view == geminibotChatView",
+          "group": "navigation"
+        }
       ]
     },
     "configuration": {
@@ -91,7 +91,7 @@
           "order": 3,
           "type": "number"
         },
-        "geminibot.enableAutoComplete":{
+        "geminibot.enableAutoComplete": {
           "default": true,
           "description": "Use auto complete feature for automatic code suggestions",
           "order": 4,
@@ -148,7 +148,8 @@
     "url": "https://github.com/krishnaagrawal7508/GeminiBot.git"
   },
   "dependencies": {
-    "marked": "^15.0.7"
+    "marked": "^15.0.7",
+    "prettier": "^3.5.3"
   },
   "extensionKind": [
     "workspace"

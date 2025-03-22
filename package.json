@@ -38,6 +38,11 @@
         "command": "geminibot.openSettings",
         "title": "GeminiBot Settings",
         "icon": "$(gear)"
+      },
+      {
+        "command": "geminibot.openPanel",
+        "title": "Open GeminiBot",
+        "icon": "media/icon-noBG-cropped.svg"
       }
     ],
     "menus": {
@@ -62,6 +67,12 @@
         {
           "command": "geminibot.openSettings",
           "when": "view == geminibotChatView",
+          "group": "navigation"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "geminibot.openPanel",
           "group": "navigation"
         }
       ]

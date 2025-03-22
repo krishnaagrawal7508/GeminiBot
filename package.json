@@ -187,6 +187,8 @@
     "src/",
     "media/",
     "src/views/chatPanel/chatView.html",
+    "src/views/chatPanel/style.css",
+    "src/views/chatPanel/script.js",
     "package.json",
     "README.md"
   ]

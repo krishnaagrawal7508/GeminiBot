@@ -68,33 +68,49 @@
     },
     "configuration": {
       "properties": {
-        "GeminiBot.apiKey": {
+        "geminiAssistant.apiKey": {
           "default": "Gemini",
           "description": "To use GeminiBot, press (ctrl+shift+p) and search for 'GeminiBot: Set API Key' in the command palette to set your Gemini API key.",
-          "order": 1,
-          "type": "string"
+          "order": 1
         },
         "GeminiBot.model": {
-          "default": "gemini-pro",
+          "default": "gemini-1.5-flash",
           "description": "The model to use for GeminiBot",
           "enum": [
-            "gemini-pro",
-            "gemini-pro-vision",
-            "gemini-ultra"
+            "gemini-1.5-flash",
+            "gemini-1.5-pro",
+            "gemini-2.0-flash"
           ],
           "order": 2,
           "type": "string"
         },
         "GeminiBot.temperature": {
-          "default": 0.3,
-          "description": "The temperature of the model (between 0 and 1)",
+          "default": 1.0,
+          "description": "The temperature of the model (controls randomness). Recommended range: 0.0 - 2.0 for most models.",
           "order": 3,
-          "type": "number"
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 2.0
+        },
+        "GeminiBot.top_k": {
+          "default": 40,
+          "description": "Limits the number of tokens considered for the next step. Lower values make responses more deterministic.",
+          "order": 4,
+          "type": "number",
+          "minimum": 1
+        },
+        "GeminiBot.top_p": {
+          "default": 0.9,
+          "description": "Controls the probability mass of token selection. Lower values make responses more predictable.",
+          "order": 5,
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
         },
         "geminibot.enableAutoComplete": {
           "default": true,
           "description": "Use auto complete feature for automatic code suggestions",
-          "order": 4,
+          "order": 6,
           "type": "boolean"
         }
       },

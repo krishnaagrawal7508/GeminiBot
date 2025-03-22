@@ -84,24 +84,20 @@ export class GeminiApi {
             `\nText after cursor on current line: ${nextText}\nFollowing lines:\n${nextLines.join('\n')}` : '';
 
         const prompt = `
-I'm coding in ${languageId} (file extension: ${fileExtension}).
-Editor settings: Using ${indentType} with tabSize=${tabSize}.
-
-Here's the code context (previous code followed by cursor position, marked with |):
-
-${context}|${afterCursorContext}
-
-Provide a single code completion suggestion for what should come immediately after the cursor position.
-Important formatting rules:
-1. Respect the current indentation level
-2. If adding new lines, maintain proper indentation based on code structure
-3. Use ${indentType} for indentation (${tabSize} ${useSpaces ? 'spaces' : 'tab characters'} per level)
-4. Follow standard ${languageId} code style and formatting conventions
-5. For multi-line completions, each line should have appropriate indentation
-
-Only include the completion text itself, no explanations or comments.
-Keep it concise but complete, maximum 10 lines.
-`;
+            I'm coding in ${languageId} (file extension: ${fileExtension}).
+            Editor settings: Using ${indentType} with tabSize=${tabSize}.
+            Here's the code context (previous code followed by cursor position, marked with |):
+            ${context}|${afterCursorContext}
+            Provide a single code completion suggestion for what should come immediately after the cursor position.
+            Important formatting rules:
+            1. Respect the current indentation level
+            2. If adding new lines, maintain proper indentation based on code structure
+            3. Use ${indentType} for indentation (${tabSize} ${useSpaces ? 'spaces' : 'tab characters'} per level)
+            4. Follow standard ${languageId} code style and formatting conventions
+            5. For multi-line completions, each line should have appropriate indentation
+            Only include the completion text itself, no explanations or comments.
+            Keep it concise but complete, maximum 10 lines.
+        `;
 
         try {
             const completion = await this.callGeminiApi(apiKey, prompt);
@@ -144,13 +140,9 @@ Keep it concise but complete, maximum 10 lines.
             `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
         ).join('\n\n');
 
-        const prompt = `
-    Here's our conversation so far:
-    
-    ${conversationContext}
-    
-    Assistant: 
-    `;
+        const prompt = `Here's our conversation so far:
+            ${conversationContext}
+        Assistant: `;
 
         return this.callGeminiApi(apiKey, prompt);
     }
@@ -159,14 +151,27 @@ Keep it concise but complete, maximum 10 lines.
      * Helper function to call Gemini API using native https module
      */
     private callGeminiApi(apiKey: string, prompt: string): Promise<string> {
+
+        const config = vscode.workspace.getConfiguration('GeminiBot');
+
+        const model = config.get<string>('model');
+        const temperature = config.get<number>('temperature');
+        const topK = config.get<number>('top_k');
+        const topP = config.get<number>('top_p');
+
         return new Promise((resolve, reject) => {
             const data = JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }]
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                    temperature: temperature,
+                    topP: topP,
+                    topK: topK,
+                }
             });
 
             const options = {
                 hostname: 'generativelanguage.googleapis.com',
-                path: `/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+                path: `/v1beta/models/${model}:generateContent?key=${apiKey}`,
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

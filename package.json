@@ -93,7 +93,7 @@
           "maximum": 2.0
         },
         "GeminiBot.top_k": {
-          "default": 40,
+          "default": 1,
           "description": "Limits the number of tokens considered for the next step. Lower values make responses more deterministic.",
           "order": 4,
           "type": "number",

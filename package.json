@@ -149,7 +149,8 @@
   },
   "dependencies": {
     "marked": "^15.0.7",
-    "prettier": "^3.5.3"
+    "prettier": "^3.5.3",
+    "react": "^19.0.0"
   },
   "extensionKind": [
     "workspace"

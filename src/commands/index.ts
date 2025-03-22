@@ -6,6 +6,7 @@ import { registerGenerateCodeCommand } from './generateCode';
 import { registerRefactorCodeCommand } from './refractorCode';
 import { registerSetApiKeyCommand } from './setApiKey';
 import { registerRemoveApiKeyCommand } from './removeApiKey';
+import { registerOpenSettingsCommand } from './openSettings';
 
 export function registerCommands(
   context: vscode.ExtensionContext,
@@ -19,6 +20,7 @@ export function registerCommands(
     registerGenerateCodeCommand(context, geminiApi),
     registerRefactorCodeCommand(context, geminiApi),
     registerRemoveApiKeyCommand(context, geminiApi),
+    registerOpenSettingsCommand(),
     
     // Register clear chat command
     vscode.commands.registerCommand('geminibot.clearChat', () => {

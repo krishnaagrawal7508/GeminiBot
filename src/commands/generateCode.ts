@@ -129,6 +129,8 @@ async function applyInlineDiff(
   // Clear decorations after action
   editor.setDecorations(addedLineDecorationType, []);
   editor.setDecorations(diffAdditionDecorationType, []);
+
+  await vscode.commands.executeCommand('editor.action.formatDocument');
 }
 
 function cleanGeneratedCode(code: string, language: string): string {

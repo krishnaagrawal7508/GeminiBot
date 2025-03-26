@@ -42,7 +42,7 @@ export function registerRefactorCodeCommand(
                         const cleanedCode = cleanGeneratedCode(refactoredCode, documentLanguage);
 
                         // Replace the selected text with the refactored code
-                        await applyInlineDiff(editor, editor.selection, cleanedCode)
+                        await applyInlineDiff(editor, editor.selection, cleanedCode, selectedText)
 
                         vscode.window.showInformationMessage('Code refactoring completed!');
                     } catch (error) {
@@ -66,7 +66,8 @@ export function registerRefactorCodeCommand(
 async function applyInlineDiff(
     editor: vscode.TextEditor,
     originalSelection: vscode.Selection,
-    generatedCode: string
+    generatedCode: string,
+    selectedText: string
 ) {
     // Create decoration types
     const addedLineDecorationType = vscode.window.createTextEditorDecorationType({
@@ -86,7 +87,7 @@ async function applyInlineDiff(
 
     // Prepare the edit
     await editor.edit(editBuilder => {
-        editBuilder.replace(originalSelection, `\n\n${generatedCode}`);
+        editBuilder.replace(originalSelection, `${generatedCode}`);
     });
 
     // Get the range of inserted code
@@ -117,15 +118,15 @@ async function applyInlineDiff(
     if (pick === 'Revert Changes') {
         // Remove the inserted code
         await editor.edit(editBuilder => {
-            const startPos = new vscode.Position(insertedCodeStartLine, document.lineAt(insertedCodeStartLine).text.length);
-            const endPos = new vscode.Position(insertedCodeEndLine, document.lineAt(insertedCodeEndLine).text.length);
-            editBuilder.delete(new vscode.Range(startPos, endPos));
+            editBuilder.replace(originalSelection, `\n${selectedText}`);
         });
     }
 
     // Clear decorations after action
     editor.setDecorations(addedLineDecorationType, []);
     editor.setDecorations(diffAdditionDecorationType, []);
+    
+    await vscode.commands.executeCommand('editor.action.formatDocument');
 }
 
 function cleanGeneratedCode(code: string, language: string): string {

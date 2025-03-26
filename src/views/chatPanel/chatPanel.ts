@@ -280,7 +280,7 @@ export class ChatPanelProvider implements vscode.WebviewViewProvider {
                         <div id="api-key-container" class="api-key-warning" style="display: none;">
                             <h1>Welcome To GeminiBot</h1>
                             <p>AI-powered coding assistant, driven by Google's Gemini</p>
-                            <a href="https://imgbb.com/"><img src="https://i.ibb.co/gLRqKvj/icon-no-BG.png" alt="icon-no-BG" border="0" /></a>
+                            <img src="https://i.postimg.cc/SNkVRk6w/icon-no-BG.png" alt="icon-no-BG" border="0" />
                             <p>Please set your Gemini API key to use the chat feature.</p>
                             <button class="api-key-button" id="set-api-key">Set API Key</button>
                         </div>

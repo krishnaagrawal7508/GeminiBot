@@ -107,7 +107,7 @@ code {
 .api-key-warning {
     padding: 20px;
     text-align: center;
-    background-color: var(--vscode-editor-background);
+    background-color: rgb(20, 20, 20);
 }
 
 .api-key-button {

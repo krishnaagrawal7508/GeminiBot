@@ -83,6 +83,8 @@
         'default': '📄'
     };
 
+    addMessage("how can i help you?", 'model');
+
     // Auto-resize textarea
     messageInput.addEventListener('input', (e) => {
         messageInput.style.height = 'auto';
@@ -219,15 +221,6 @@
         const formattedHTML = marked.parse(text);
 
         return formattedHTML;
-    }
-
-    function escapeHtml(text) {
-        return text
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
     }
 
     function showLoading() {

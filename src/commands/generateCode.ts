@@ -45,6 +45,8 @@ export function registerGenerateCodeCommand(
 
             // Apply inline diff and generate decorations
             await applyInlineDiff(editor, selection, cleanedCode);
+
+            vscode.window.showInformationMessage('Code generation completed!');
           } catch (error) {
             let errorMessage = 'Error generating code';
             if (error instanceof Error) {
@@ -64,8 +66,8 @@ export function registerGenerateCodeCommand(
 
 // Create decorations for inline diff
 async function applyInlineDiff(
-  editor: vscode.TextEditor, 
-  originalSelection: vscode.Selection, 
+  editor: vscode.TextEditor,
+  originalSelection: vscode.Selection,
   generatedCode: string
 ) {
   // Create decoration types
@@ -135,13 +137,13 @@ function cleanGeneratedCode(code: string, language: string): string {
   // Remove markdown code block syntax
   const codeBlockRegex = new RegExp(`^\`\`\`(?:${language}|javascript|typescript|js|ts|html|css|python|java|c#|c\\+\\+|ruby|go|php|rust|swift|kotlin|scala|shell|bash|sql|json|xml|yaml|plaintext)?\\s*\\n?`);
   cleanedCode = cleanedCode.replace(codeBlockRegex, '');
-  
+
   // Remove trailing code block markers
   cleanedCode = cleanedCode.replace(/\n?```$/g, '');
-  
+
   // Remove inline code markers
   cleanedCode = cleanedCode.replace(/^`|`$/g, '');
-  
+
   // Remove lines that just contain the language name
   const languageLineRegex = new RegExp(`^(?:${language}|javascript|typescript|js|ts|html|css|python|java|c#|c\\+\\+|ruby|go|php|rust|swift|kotlin|scala|shell|bash|sql|json|xml|yaml|plaintext)$`, 'gm');
   cleanedCode = cleanedCode.replace(languageLineRegex, '');

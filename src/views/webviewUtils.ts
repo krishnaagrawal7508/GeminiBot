@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import marked from 'marked';
 
 export function showResultInWebview(content: string, title: string) {
   const panel = vscode.window.createWebviewPanel(
@@ -12,7 +13,7 @@ export function showResultInWebview(content: string, title: string) {
 }
 
 function getWebviewContent(content: string, title: string): string {
-  const formattedContent = formatContent(content);
+  const formattedContent = marked.parse(content);
 
   return `
     <!DOCTYPE html>
@@ -54,17 +55,4 @@ function getWebviewContent(content: string, title: string): string {
     </body>
     </html>
   `;
-}
-
-function formatContent(content: string): string {
-  console.log(content);
-  
-  const formattedText = content
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold text
-    .replace(/`([^`]+)`/g, '<code>$1</code>') // Inline code
-    .replace(/\n\n/g, '</p><p>') // Paragraph breaks
-    .replace(/\n\* (.*?)\*/g, '<li>$1</li>') // List items
-    .replace(/```([^`]+)```/gs, '<pre><code>$1</code></pre>'); // Code blocks
-
-  return formattedText
 }

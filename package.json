@@ -21,7 +21,7 @@
     "url": "https://github.com/krishnaagrawal7508/GeminiBot/issues"
   },
   "galleryBanner": {
-    "color": "#C80000",
+    "color": "rgb(20, 20, 20)",
     "theme": "dark"
   },
   "categories": [
@@ -63,6 +63,23 @@
         "command": "geminibot.openPanel",
         "title": "Open GeminiBot",
         "icon": "media/icon-noBG-cropped.svg"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "geminibot.explainCode",
+        "key": "ctrl+shift+e",
+        "when": "editorHasSelection"
+      },
+      {
+        "command": "geminibot.generateCode",
+        "key": "ctrl+shift+g",
+        "when": "editorHasSelection"
+      },
+      {
+        "command": "geminibot.refactorCode",
+        "key": "ctrl+shift+r",
+        "when": "editorHasSelection"
       }
     ],
     "menus": {

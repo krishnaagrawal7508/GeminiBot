@@ -92,7 +92,7 @@ async function applyInlineDiff(
 
   // Get the range of inserted code
   const document = editor.document;
-  const insertedCodeStartLine = originalSelection.end.line + 2; // +2 to skip two newlines
+  const insertedCodeStartLine = originalSelection.end.line + 1; // +2 to skip two newlines
   const insertedCodeEndLine = insertedCodeStartLine + generatedCode.split('\n').length - 1;
 
   // Create ranges for decorations

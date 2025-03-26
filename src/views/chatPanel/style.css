@@ -8,7 +8,7 @@ body {
     display: flex;
     flex-direction: column;
     height: 100vh;
-    background-color: var(--vscode-editor-background);
+    background-color: rgb(20, 20, 20);
     border-color: aliceblue;
 }
 
@@ -70,7 +70,8 @@ code {
     padding: 5px 8px;
     border-top: 1px solid var(--vscode-panel-border);
     position: relative;
-    background-color: var(--vscode-editorWidget-background, #1e1e1e);
+    /* background-color: var(--vscode-editorWidget-background, #1e1e1e); */
+    background-color: rgb(20, 20, 20);
 }
 
 #message-input {

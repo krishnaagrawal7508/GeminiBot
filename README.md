@@ -29,7 +29,7 @@ Once your API key is set, you can start using the features...
 
 ## 🎬 Feature Previews
 
-### Chat Box
+### Setup Configurations and Chat Bot 
 The chatbot can cache previous interactions, ensuring continuity in conversations. It also supports file referencing using '@', allowing you to ask questions about specific files. The chatbot includes error handling and response formatting for clear and structured outputs.
 
 ![](./media/recordings/setupChat.gif)

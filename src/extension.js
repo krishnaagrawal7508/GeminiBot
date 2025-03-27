@@ -59,7 +59,7 @@ async function activate(context) {
             console.log("Gemini API Key input was canceled.");
         }
     });
-    // Command to explain selected code
+
     let explainCodeCommand = vscode.commands.registerCommand("geminibot.explainCode", async () => {
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
@@ -83,7 +83,6 @@ async function activate(context) {
         }, async () => {
             try {
                 const explanation = await getGeminiResponse(apiKey, `Explain the following code in detail:\n\n${selectedText}`);
-                // Show explanation in a webview
                 showResultInWebview(explanation, "Code Explanation");
             }
             catch (error) {
@@ -92,7 +91,6 @@ async function activate(context) {
             }
         });
     });
-    // Command to generate code from comments
     let generateCodeCommand = vscode.commands.registerCommand("geminibot.generateCode", async () => {
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
@@ -117,7 +115,6 @@ async function activate(context) {
         }, async () => {
             try {
                 const generatedCode = await getGeminiResponse(apiKey, `Given these requirements or comments:\n\n${selectedText}\n\nGenerate code in ${documentLanguage}. Only provide the code, no explanations.`);
-                // Create a new document with the generated code
                 const document = await vscode.workspace.openTextDocument({
                     content: generatedCode,
                     language: documentLanguage
@@ -130,7 +127,6 @@ async function activate(context) {
             }
         });
     });
-    // Command to refactor selected code
     let refactorCodeCommand = vscode.commands.registerCommand("geminibot.refactorCode", async () => {
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
@@ -155,7 +151,6 @@ async function activate(context) {
         }, async () => {
             try {
                 const refactoredCode = await getGeminiResponse(apiKey, `Refactor the following ${documentLanguage} code to improve readability, performance, and follow best practices. Only provide the refactored code, no explanations:\n\n${selectedText}`);
-                // Replace the selected text with the refactored code
                 editor.edit(editBuilder => {
                     editBuilder.replace(editor.selection, refactoredCode);
                 });
@@ -166,7 +161,6 @@ async function activate(context) {
             }
         });
     });
-    // Helper function to show results in webview
     function showResultInWebview(content, title) {
         const panel = vscode.window.createWebviewPanel("geminiResult", title, vscode.ViewColumn.Beside, { enableScripts: true });
         panel.webview.html = `
@@ -187,7 +181,6 @@ async function activate(context) {
       </html>
     `;
     }
-    // Helper function to call Gemini API
     async function getGeminiResponse(apiKey, prompt) {
         try {
             const response = await axios_1.default.post("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent", {

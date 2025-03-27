@@ -222,8 +222,9 @@
   "files": [
     "out/",
     "src/",
-    "media/",
-    "media/recordings",
+    "media/icon-noBG-cropped.svg",
+    "media/icon-noBG.png",
+    "media/icon64x64.png",
     "src/views/chatPanel/chatView.html",
     "src/views/chatPanel/style.css",
     "src/views/chatPanel/script.js",

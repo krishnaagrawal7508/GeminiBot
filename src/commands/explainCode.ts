@@ -38,7 +38,6 @@ export function registerExplainCodeCommand(
                             `Explain the following code in detail:\n\n${selectedText}`
                         );
 
-                        // Show explanation in a webview
                         showResultInWebview(explanation, 'Code Explanation');
                     } catch (error) {
                         let errorMessage = 'Error explaining code';

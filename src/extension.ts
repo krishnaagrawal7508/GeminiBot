@@ -8,10 +8,8 @@ export async function activate(context: vscode.ExtensionContext) {
 	try {
 		console.log('GeminiBot extension activated successfully!');
 
-		// Initialize the API client
 		const geminiApi = new GeminiApi(context);
 
-		// Register chat panel view
 		const chatPanelProvider = new ChatPanelProvider(context, geminiApi);
 		context.subscriptions.push(
 			vscode.window.registerWebviewViewProvider(
@@ -19,11 +17,8 @@ export async function activate(context: vscode.ExtensionContext) {
 				chatPanelProvider
 			)
 		);
-
-		// Register all commands
 		registerCommands(context, geminiApi, chatPanelProvider);
 
-		// Register completion provider for all languages
 		const config = vscode.workspace.getConfiguration('geminibot');
 		if (config.get<boolean>('enableAutoComplete')) {
 
@@ -37,7 +32,6 @@ export async function activate(context: vscode.ExtensionContext) {
 			);
 		}
 
-		// Listen for configuration changes
 		context.subscriptions.push(
 			vscode.workspace.onDidChangeConfiguration(e => {
 				if (e.affectsConfiguration('geminibot.enableAutoComplete')) {

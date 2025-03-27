@@ -23,24 +23,15 @@ export class GeminiApi {
         this.context = context;
     }
 
-    /**
-     * Get API key from extension storage
-     */
     public async getApiKey(): Promise<string | undefined> {
         console.log(this.context.globalState.get<string>('geminiApiKey'));
         return this.context.globalState.get<string>('geminiApiKey');
     }
 
-    /**
-     * Save API key to extension storage
-     */
     public async setApiKey(apiKey: string | undefined): Promise<void> {
         await this.context.globalState.update('geminiApiKey', apiKey);
     }
 
-    /**
-     * Send prompt to Gemini API and get response
-     */
     public async getCompletion(prompt: string): Promise<string> {
         const apiKey = await this.getApiKey();
         if (!apiKey) {
@@ -50,9 +41,6 @@ export class GeminiApi {
         return this.callGeminiApi(apiKey, prompt);
     }
 
-    /**
-     * Get code completion suggestions with proper formatting
-    */
     public async getCodeCompletion(
         document: vscode.TextDocument,
         position: vscode.Position,
@@ -65,7 +53,6 @@ export class GeminiApi {
             throw new Error('API key not set');
         }
 
-        // Get editor configuration
         const editorConfig = vscode.workspace.getConfiguration('editor', document.uri);
         const useSpaces = editorConfig.get<boolean>('insertSpaces', true);
         const tabSize = editorConfig.get<number>('tabSize', 4);
@@ -74,12 +61,10 @@ export class GeminiApi {
         const fileExtension = document.fileName.split('.').pop() || '';
         const languageId = document.languageId;
 
-        // Get the current line's indentation
         const currentLine = document.lineAt(position.line).text;
         const indentMatch = currentLine.match(/^(\s*)/);
         const currentIndent = indentMatch ? indentMatch[1] : '';
 
-        // Additional code context after cursor
         const afterCursorContext = nextText.length > 0 || nextLines.length > 0 ?
             `\nText after cursor on current line: ${nextText}\nFollowing lines:\n${nextLines.join('\n')}` : '';
 
@@ -102,7 +87,6 @@ export class GeminiApi {
         try {
             const completion = await this.callGeminiApi(apiKey, prompt);
 
-            // Clean up any extraneous text that might have been included
             return this.cleanCompletionText(completion);
         } catch (error) {
             console.error('Error getting completion from Gemini:', error);
@@ -110,32 +94,20 @@ export class GeminiApi {
         }
     }
 
-    /**
-     * Clean completion text to ensure it's properly formatted
-     */
     private cleanCompletionText(text: string): string {
-        // Remove markdown code blocks if present
         text = text.replace(/```(?:\w+)?\n([\s\S]*?)\n```/g, '$1');
-
-        // Remove any "Here's a completion" type of text
         text = text.replace(/^(?:here(?:'s| is)(?: a| the)? (?:completion|suggestion)(?::)?|I suggest:)\s*/i, '');
-
-        // Remove trailing "Hope this helps" type of text
         text = text.replace(/\n(?:hope this helps|let me know if you need anything else).*$/i, '');
 
         return text.trim();
     }
 
-    /**
-     * Get response for chat conversation
-     */
     public async getChatResponse(messages: ChatMessage[]): Promise<string> {
         const apiKey = await this.getApiKey();
         if (!apiKey) {
             throw new Error('API key not set');
         }
 
-        // Format messages for Gemini
         const conversationContext = messages.map(msg =>
             `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
         ).join('\n\n');
@@ -147,9 +119,6 @@ export class GeminiApi {
         return this.callGeminiApi(apiKey, prompt);
     }
 
-    /**
-     * Helper function to call Gemini API using native https module
-     */
     private callGeminiApi(apiKey: string, prompt: string): Promise<string> {
 
         const config = vscode.workspace.getConfiguration('GeminiBot');

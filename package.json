@@ -2,7 +2,7 @@
   "name": "geminibot",
   "displayName": "GeminiAiBot",
   "description": "AI coding assistant powered by Google's Gemini",
-  "version": "0.2.3",
+  "version": "0.2.7",
   "publisher": "KrisnaAgraw",
   "engines": {
     "vscode": "^1.60.0"
@@ -203,7 +203,6 @@
     "@typescript-eslint/parser": "^4.26.0",
     "eslint": "^7.27.0",
     "glob": "^7.1.7",
-    "marked": "^15.0.7",
     "mocha": "^8.4.0",
     "typescript": "^4.3.2",
     "vscode-test": "^1.5.2"
@@ -226,6 +225,13 @@
     "src/views/chatPanel/script.js",
     "package.json",
     "README.md",
-    "LICENSE.txt"
-  ]
+    "LICENSE.txt",
+    "node_modules/"
+  ],
+  "dependencies": {
+    "marked": "^15.0.7"
+  },
+  "vsce": {
+    "dependencies": true
+  }
 }

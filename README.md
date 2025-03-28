@@ -57,5 +57,3 @@ Gemini Bot provides ghosted inline suggestions by analyzing a few preceding line
 ## License
 
 This extension is licensed under the [MIT License](LICENSE.txt).
-
-Note: The latest version is not yet published on the VS Code marketplace, setup the project locally to test the latest version, having all the features listed above.

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import marked from 'marked';
+import * as marked from 'marked';
 
 export function showResultInWebview(content: string, title: string) {
   const panel = vscode.window.createWebviewPanel(

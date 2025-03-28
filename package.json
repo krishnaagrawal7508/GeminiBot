@@ -2,7 +2,7 @@
   "name": "geminibot",
   "displayName": "GeminiAiBot",
   "description": "AI coding assistant powered by Google's Gemini",
-  "version": "0.2.1",
+  "version": "0.2.3",
   "publisher": "KrisnaAgraw",
   "engines": {
     "vscode": "^1.60.0"
@@ -133,12 +133,12 @@
           "type": "string"
         },
         "GeminiBot.temperature": {
-          "default": 1.0,
+          "default": 1,
           "description": "The temperature of the model (controls randomness). Recommended range: 0.0 - 2.0 for most models.",
           "order": 3,
           "type": "number",
-          "minimum": 0.0,
-          "maximum": 2.0
+          "minimum": 0,
+          "maximum": 2
         },
         "GeminiBot.top_k": {
           "default": 1,
@@ -152,8 +152,8 @@
           "description": "Controls the probability mass of token selection. Lower values make responses more predictable.",
           "order": 5,
           "type": "number",
-          "minimum": 0.0,
-          "maximum": 1.0
+          "minimum": 0,
+          "maximum": 1
         },
         "geminibot.enableAutoComplete": {
           "default": true,
@@ -203,6 +203,7 @@
     "@typescript-eslint/parser": "^4.26.0",
     "eslint": "^7.27.0",
     "glob": "^7.1.7",
+    "marked": "^15.0.7",
     "mocha": "^8.4.0",
     "typescript": "^4.3.2",
     "vscode-test": "^1.5.2"
@@ -210,11 +211,6 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/krishnaagrawal7508/GeminiBot.git"
-  },
-  "dependencies": {
-    "marked": "^15.0.7",
-    "prettier": "^3.5.3",
-    "react": "^19.0.0"
   },
   "extensionKind": [
     "workspace"

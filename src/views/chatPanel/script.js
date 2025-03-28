@@ -1,8 +1,6 @@
 (function () {
-    // Get VS Code API
     const vscode = acquireVsCodeApi();
 
-    // Elements
     const messagesContainer = document.getElementById('messages');
     const messageInput = document.getElementById('message-input');
     const sendButton = document.getElementById('send-button');
@@ -18,7 +16,6 @@
     let allFiles = [];
     let filesPerPage = 100;
 
-    // File extension to icon mapping
     const fileIcons = {
         'js': '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="#F0DB4F" d="M3 3h18v18H3V3m4.73 15.04c.4.85 1.19 1.55 2.54 1.55 1.5 0 2.53-.8 2.53-2.55v-5.78h-1.7V17c0 .86-.35 1.08-.9 1.08-.58 0-.82-.4-1.09-.87l-1.38.83m5.98-.18c.5.98 1.51 1.73 3.09 1.73 1.6 0 2.8-.83 2.8-2.36 0-1.41-.81-2.04-2.25-2.66l-.42-.18c-.73-.31-1.04-.52-1.04-1.02 0-.41.31-.73.81-.73.48 0 .8.21 1.09.73l1.31-.87c-.55-.96-1.33-1.33-2.4-1.33-1.51 0-2.48.96-2.48 2.23 0 1.38.81 2.03 2.03 2.55l.42.18c.78.34 1.24.55 1.24 1.13 0 .48-.45.83-1.15.83-.83 0-1.31-.43-1.67-1.03l-1.38.8z"/></svg>',
         'ts': '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="#3178C6" d="M3,3H21V21H3V3M13.71,17.86C14.21,18.84,15.22,19.59,16.8,19.59C18.4,19.59,19.6,18.76,19.6,17.23C19.6,15.82,18.79,15.19,17.35,14.57L16.93,14.39C16.2,14.08,15.89,13.87,15.89,13.37C15.89,12.96,16.2,12.64,16.7,12.64C17.18,12.64,17.5,12.85,17.79,13.37L19.1,12.5C18.55,11.54,17.77,11.17,16.7,11.17C15.19,11.17,14.22,12.13,14.22,13.4C14.22,14.78,15.03,15.43,16.25,15.95L16.67,16.13C17.45,16.47,17.91,16.68,17.91,17.26C17.91,17.74,17.46,18.09,16.76,18.09C15.93,18.09,15.45,17.66,15.09,17.06L13.71,17.86M13,11.25H8V12.75H9.5V20H11.25V12.75H13V11.25Z"/></svg>',
@@ -85,16 +82,13 @@
 
     addMessage("how can i help you?", 'model');
 
-    // Auto-resize textarea
     messageInput.addEventListener('input', (e) => {
         messageInput.style.height = 'auto';
         messageInput.style.height = messageInput.scrollHeight + 'px';
 
-        // Check for @ symbol to trigger file search
         handleAtSymbol(e);
     });
 
-    // Send message when Enter key is pressed (but not with Shift+Enter)
     messageInput.addEventListener('keydown', (e) => {
         if (fileSuggestions.style.display === 'block') {
             if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
@@ -118,18 +112,14 @@
         }
     });
 
-    // Send message when button is clicked
     sendButton.addEventListener('click', sendMessage);
 
-    // Set API key button
     setApiKeyButton.addEventListener('click', () => {
         vscode.postMessage({ command: 'setApiKey' });
     });
 
-    // Check if API key is set
     vscode.postMessage({ command: 'checkApiKey' });
 
-    // Handle messages from extension
     window.addEventListener('message', (event) => {
         const message = event.data;
 
@@ -175,7 +165,6 @@
                 break;
 
             case 'fileContent':
-                // This is used when preview is needed (not implemented in this version)
                 console.log('File content received:', message.path);
                 break;
         }
@@ -184,34 +173,27 @@
     function sendMessage() {
         const text = messageInput.value.trim();
         if (text && !isLoading) {
-            // Add user message to UI
             addMessage(text, 'user');
 
-            // Send to extension
             vscode.postMessage({
                 command: 'sendMessage',
                 text
             });
 
-            // Clear input
             messageInput.value = '';
             messageInput.style.height = 'auto';
         }
     }
 
     function addMessage(text, role) {
-        // Create message element
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${role}-message`;
 
-        // Format text with markdown-style code blocks and other formatting
         const formattedText = formatMessageText(text);
         messageDiv.innerHTML = formattedText;
 
-        // Add to container
         messagesContainer.appendChild(messageDiv);
 
-        // Scroll to bottom
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
@@ -226,7 +208,6 @@
     function showLoading() {
         isLoading = true;
 
-        // Create loading indicator
         const loadingDiv = document.createElement('div');
         loadingDiv.className = 'loading';
         loadingDiv.id = 'loading-indicator';
@@ -259,19 +240,16 @@
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
-    // File suggestion handling
     function handleAtSymbol(event) {
         const text = messageInput.value;
         const cursorPosition = messageInput.selectionStart;
         const textBeforeCursor = text.substring(0, cursorPosition);
 
-        // Check if we just typed @ or are continuing after @
         const match = textBeforeCursor.match(/@([^@\s]*)$/);
 
         if (match) {
             const query = match[1] || '';
 
-            // Debounce search requests
             clearTimeout(fileSearchTimeout);
             fileSearchTimeout = setTimeout(() => {
                 vscode.postMessage({
@@ -297,12 +275,10 @@
 
         fileSuggestions.innerHTML = '';
 
-        // Calculate pagination
         const startIndex = (currentFilePage - 1) * filesPerPage;
         const endIndex = Math.min(startIndex + filesPerPage, allFiles.length);
         const currentPageFiles = allFiles.slice(startIndex, endIndex);
 
-        // Create file suggestion elements
         currentPageFiles.forEach((file, index) => {
             const fileElement = document.createElement('div');
             fileElement.className = 'file-suggestion';
@@ -326,7 +302,6 @@
             fileSuggestions.appendChild(fileElement);
         });
 
-        // Add pagination if needed
         if (allFiles.length > filesPerPage) {
             const paginationDiv = document.createElement('div');
             paginationDiv.className = 'file-pagination';
@@ -343,7 +318,6 @@
 
             fileSuggestions.appendChild(paginationDiv);
 
-            // Add pagination event handlers
             const prevButton = paginationDiv.querySelector('.prev-button');
             const nextButton = paginationDiv.querySelector('.next-button');
 
@@ -381,7 +355,6 @@
 
         let newIndex = currentIndex + direction;
 
-        // Handle pagination navigation
         if (newIndex < 0) {
             if (currentFilePage > 1) {
                 currentFilePage--;
@@ -427,7 +400,6 @@
         const textBeforeCursor = text.substring(0, cursorPosition);
         const textAfterCursor = text.substring(cursorPosition);
 
-        // Find the @ that started this lookup
         const match = textBeforeCursor.match(/@([^@\s]*)$/);
         if (match) {
             const startPos = textBeforeCursor.lastIndexOf('@');

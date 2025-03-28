@@ -42,9 +42,8 @@ export class ChatPanelProvider implements vscode.WebviewViewProvider {
             return;
         }
 
-        // Handle messages from the webview
         webviewView.webview.onDidReceiveMessage(async (message) => {
-            console.log('Received message:', message); // Debugging log
+            console.log('Received message:', message);
             switch (message.command) {
                 case 'sendMessage':
                     await this.handleUserMessage(message.text);
@@ -64,7 +63,6 @@ export class ChatPanelProvider implements vscode.WebviewViewProvider {
             }
         });
 
-        // Initial load - check API key
         this._view.webview.postMessage({ command: 'checkApiKey' });
     }
 
@@ -121,7 +119,6 @@ export class ChatPanelProvider implements vscode.WebviewViewProvider {
     }
 
     private async processFileReferences(text: string): Promise<string> {
-        // Regular expression to match @file_path patterns
         const taggedFileRegex = /@([^\s]+)/g;
         let match;
         let processedText = text;
@@ -129,10 +126,8 @@ export class ChatPanelProvider implements vscode.WebviewViewProvider {
         while ((match = taggedFileRegex.exec(text)) !== null) {
             const taggedFilePath = match[1];
             try {
-                // Get the file content
                 const fileContent = await this.getFileContentFromPath(taggedFilePath);
-
-                // Replace the @file_path with a comment indicating the file was included
+                
                 processedText = processedText.replace(
                     match[0],
                     `[File: ${taggedFilePath}]\n\`\`\`\n${fileContent}\n\`\`\``
@@ -170,7 +165,6 @@ export class ChatPanelProvider implements vscode.WebviewViewProvider {
             const workspaceRoot = vscode.workspace.workspaceFolders[0].uri.fsPath;
             const files = await vscode.workspace.findFiles('**/*');
 
-            // Filter files based on the query and convert to relative paths
             const filteredFiles = files
                 .filter(file => {
                     const relativePath = path.relative(workspaceRoot, file.fsPath);
@@ -183,7 +177,7 @@ export class ChatPanelProvider implements vscode.WebviewViewProvider {
                         name: path.basename(file.fsPath)
                     };
                 })
-                .slice(0, 10); // Limit results
+                .slice(0, 10); 
 
             this._view.webview.postMessage({
                 command: 'workspaceFiles',
@@ -251,11 +245,9 @@ export class ChatPanelProvider implements vscode.WebviewViewProvider {
     }
 
     private async _getHtmlForWebview(): Promise<string> {
-        // Make sure webview is available
         if (!this._view) {
             throw new Error('Webview is not available');
         }
-        // Convert local URIs to webview URIs
         const styleUri = this._view.webview.asWebviewUri(
             vscode.Uri.file(path.join(this._context.extensionPath, 'src', 'views', 'chatPanel', 'style.css'))
         );

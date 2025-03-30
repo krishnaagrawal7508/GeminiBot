@@ -23,7 +23,7 @@ A VScode Extension for coding assistance powered by Google's Gemini.
 
 ## 🚀 Usage
 
-To use GeminiBOT, you must first set your API key. To do this, click on the Gemini icon in the Activity Bar on the side of the window command palette, then press on **Set API Key** to set you Gemini API key (safely and securely).
+To use GeminiBOT, you must first set your API key. Get an API key from https://aistudio.google.com/app/apikey then click on the Gemini icon in the Activity Bar on the side of the window command palette, then press on **Set API Key** to set you Gemini API key (safely and securely). 
 
 Once your API key is set, you can start using the features...
 

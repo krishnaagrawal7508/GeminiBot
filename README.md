@@ -1,6 +1,8 @@
 # 🚀 GEMINI BOT
 A VScode Extension for coding assistance powered by Google's Gemini.
 
+Project for GSOC 2025 under the organization Google DeepMind and project idea "Enhance Gemini Support in Open-Source Extensions (Continue.dev/Aider-like)"
+
 ![](./media/recordings/home.png)
 
 ## ✨ Features

@@ -127,7 +127,7 @@ export class ChatPanelProvider implements vscode.WebviewViewProvider {
             const taggedFilePath = match[1];
             try {
                 const fileContent = await this.getFileContentFromPath(taggedFilePath);
-                
+
                 processedText = processedText.replace(
                     match[0],
                     `[File: ${taggedFilePath}]\n\`\`\`\n${fileContent}\n\`\`\``
@@ -177,7 +177,7 @@ export class ChatPanelProvider implements vscode.WebviewViewProvider {
                         name: path.basename(file.fsPath)
                     };
                 })
-                .slice(0, 10); 
+                .slice(0, 10);
 
             this._view.webview.postMessage({
                 command: 'workspaceFiles',
@@ -244,57 +244,99 @@ export class ChatPanelProvider implements vscode.WebviewViewProvider {
         }
     }
 
+    // private async _getHtmlForWebview(): Promise<string> {
+    //     if (!this._view) {
+    //         throw new Error('Webview is not available');
+    //     }
+    //     const styleUri = this._view.webview.asWebviewUri(
+    //         vscode.Uri.file(path.join(this._context.extensionPath, 'src', 'views', 'chatPanel', 'style.css'))
+    //     );
+    //     const scriptUri = this._view.webview.asWebviewUri(
+    //         vscode.Uri.file(path.join(this._context.extensionPath, 'src', 'views', 'chatPanel', 'script.js'))
+    //     );
+
+    //     try {
+    //         const html = `
+    //             <!DOCTYPE html>
+    //             <html lang="en">
+    //             <head>
+    //                 <meta charset="UTF-8">
+    //                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    //                 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${this._view.webview.cspSource} https://i.ibb.co/ https:; script-src ${this._view.webview.cspSource} https://cdnjs.cloudflare.com; style-src ${this._view.webview.cspSource};">
+    //                 <title>GeminiBot Chat</title>
+    //                 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
+    //                 <link rel="stylesheet" type="text/css" href="${styleUri}">
+    //             </head>
+    //             <body>
+    //                 <div id="chat-container">
+    //                     <div id="api-key-container" class="api-key-warning" style="display: none;">
+    //                         <h1>Welcome To GeminiBot</h1>
+    //                         <p>AI-powered coding assistant, driven by Google's Gemini</p>
+    //                         <img src="https://i.postimg.cc/SNkVRk6w/icon-no-BG.png" alt="icon-no-BG" border="0" />
+    //                         <p>Please set your Gemini API key to use the chat feature.</p>
+    //                         <button class="api-key-button" id="set-api-key">Set API Key</button>
+    //                     </div>
+
+    //                     <div id="chat-interface" style="display: none;">
+    //                         <div id="messages"></div>
+    //                         <div id="input-container">
+    //                             <textarea id="message-input" placeholder="Use @ to reference files ..." rows="1"
+    //                                 aria-label="Message input"></textarea>
+    //                             <button id="send-button">Send</button>
+    //                             <div id="file-suggestions"></div>
+    //                         </div>
+    //                     </div>
+    //                 </div>
+    //                 <script src="${scriptUri}"></script>
+    //             </body>
+    //             </html>
+    //         `;
+
+    //         return html;
+    //     } catch (error) {
+    //         throw new Error('Failed to load chatView.html');
+    //     }
+    // }
+
     private async _getHtmlForWebview(): Promise<string> {
-        if (!this._view) {
-            throw new Error('Webview is not available');
-        }
-        const styleUri = this._view.webview.asWebviewUri(
-            vscode.Uri.file(path.join(this._context.extensionPath, 'src', 'views', 'chatPanel', 'style.css'))
-        );
-        const scriptUri = this._view.webview.asWebviewUri(
-            vscode.Uri.file(path.join(this._context.extensionPath, 'src', 'views', 'chatPanel', 'script.js'))
-        );
+        if (!this._view) throw new Error('Webview is not available');
 
+        const distPath = path.join(this._context.extensionPath, 'src', 'views', 'chatPanel', 'dist');
+        const indexPath = path.join(distPath, 'index.html');
         try {
-            const html = `
-                <!DOCTYPE html>
-                <html lang="en">
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${this._view.webview.cspSource} https://i.ibb.co/ https:; script-src ${this._view.webview.cspSource} https://cdnjs.cloudflare.com; style-src ${this._view.webview.cspSource};">
-                    <title>GeminiBot Chat</title>
-                    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
-                    <link rel="stylesheet" type="text/css" href="${styleUri}">
-                </head>
-                <body>
-                    <div id="chat-container">
-                        <div id="api-key-container" class="api-key-warning" style="display: none;">
-                            <h1>Welcome To GeminiBot</h1>
-                            <p>AI-powered coding assistant, driven by Google's Gemini</p>
-                            <img src="https://i.postimg.cc/SNkVRk6w/icon-no-BG.png" alt="icon-no-BG" border="0" />
-                            <p>Please set your Gemini API key to use the chat feature.</p>
-                            <button class="api-key-button" id="set-api-key">Set API Key</button>
-                        </div>
+            let html = (await vscode.workspace.fs.readFile(vscode.Uri.file(indexPath))).toString();
 
-                        <div id="chat-interface" style="display: none;">
-                            <div id="messages"></div>
-                            <div id="input-container">
-                                <textarea id="message-input" placeholder="Use @ to reference files ..." rows="1"
-                                    aria-label="Message input"></textarea>
-                                <button id="send-button">Send</button>
-                                <div id="file-suggestions"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <script src="${scriptUri}"></script>
-                </body>
-                </html>
-            `;
+            // Replace all asset references
+            html = html.replace(/(?:src|href)="([^"]+)"/g, (match, assetPath) => {
+                if (assetPath.startsWith('http') || assetPath.startsWith('data:')) {
+                    return match; // Don't modify external URLs or data URLs
+                }
+
+                let fullPath;
+                if (assetPath.startsWith('/')) {
+                    fullPath = path.join(distPath, assetPath);
+                } else {
+                    fullPath = path.join(distPath, assetPath);
+                }
+
+                const onDiskPath = vscode.Uri.file(fullPath);
+                const webviewUri = this._view!.webview.asWebviewUri(onDiskPath);
+                return match.replace(assetPath, webviewUri.toString());
+            });
+
+            // More permissive CSP
+            html = html.replace(
+                /<head>/,
+                `<head>
+        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${this._view.webview.cspSource} https: data: blob:; script-src ${this._view.webview.cspSource} 'unsafe-inline' 'unsafe-eval'; style-src ${this._view.webview.cspSource} 'unsafe-inline'; font-src ${this._view.webview.cspSource} https: data:; connect-src ${this._view.webview.cspSource} https:;">`
+            );
 
             return html;
         } catch (error) {
-            throw new Error('Failed to load chatView.html');
+            console.error('Error loading webview HTML:', error);
+            throw error;
+
         }
+
     }
 }

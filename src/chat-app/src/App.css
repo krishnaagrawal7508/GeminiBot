@@ -1,3 +1,7 @@
+html, body {
+    height: 100%;
+}
+
 body {
     font-family: var(--vscode-font-family);
     font-size: var(--vscode-font-size);
@@ -20,10 +24,19 @@ body {
     border-color: aliceblue;
 }
 
+#chat-interface {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    border-color: aliceblue;
+}
+
 #messages {
     flex: 1;
     overflow-y: auto;
     padding: 10px;
+    min-height: 0;
 }
 
 .message {
@@ -72,6 +85,7 @@ code {
     position: relative;
     /* background-color: var(--vscode-editorWidget-background, #1e1e1e); */
     background-color: rgb(20, 20, 20);
+    flex-shrink: 0;
 }
 
 #message-input {
@@ -176,7 +190,6 @@ code {
     max-height: 300px;
     overflow-y: auto;
     z-index: 10;
-    display: none;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 

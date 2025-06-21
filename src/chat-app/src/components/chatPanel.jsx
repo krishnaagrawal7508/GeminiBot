@@ -235,7 +235,7 @@ const ChatPanel = () => {
                                 {allFiles.length > filesPerPage && (
                                     <div className="file-pagination">
                                         <div className="file-pagination-text">
-                                            Showing {(page - 1) * filesPerPage + 1}–
+                                            Showing {(page - 1) * filesPerPage + 1}
                                             {Math.min(page * filesPerPage, allFiles.length)} of {allFiles.length}
                                         </div>
                                         <div className="file-pagination-buttons">

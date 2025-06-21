@@ -63,6 +63,11 @@
         "command": "geminibot.openPanel",
         "title": "Open GeminiBot",
         "icon": "media/icon-noBG-cropped.svg"
+      },
+      {
+        "command": "geminibot.toggleMic",
+        "title": "Toggle Microphone",
+        "icon": "$(mic)"
       }
     ],
     "keybindings": [
@@ -103,6 +108,11 @@
       "view/title": [
         {
           "command": "geminibot.openSettings",
+          "when": "view == geminibotChatView",
+          "group": "navigation"
+        },
+        {
+          "command": "geminibot.toggleMic",
           "when": "view == geminibotChatView",
           "group": "navigation"
         }
@@ -229,7 +239,10 @@
     "node_modules/"
   ],
   "dependencies": {
-    "marked": "^15.0.7"
+    "@google/genai": "^1.6.0",
+    "marked": "^15.0.7",
+    "mic": "^2.1.2",
+    "node-mic": "^1.0.1"
   },
   "vsce": {
     "dependencies": true

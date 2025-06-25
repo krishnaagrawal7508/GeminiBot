@@ -26,7 +26,7 @@ export function registerCommands(
       registerRemoveApiKeyCommand(context, geminiApi),
       registerOpenSettingsCommand(),  
       registerOpenPanelCommand(),   
-      registerToggleMicCommand(context),
+      registerToggleMicCommand(context, geminiApi, chatPanelProvider),
       
       vscode.commands.registerCommand('geminibot.clearChat', () => {
         try {

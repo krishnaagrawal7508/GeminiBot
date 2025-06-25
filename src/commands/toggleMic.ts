@@ -3,6 +3,7 @@ import { GoogleGenAI, Modality, MediaResolution } from '@google/genai';
 import { GeminiApi } from '../api/geminiApi';
 import { ChatPanelProvider } from '../views/chatPanel/chatPanel';
 import NodeMic from 'node-mic';
+import screenshotDesktop from 'screenshot-desktop';
 
 let isLiveChat = false;
 let liveSession: any = null;
@@ -12,6 +13,52 @@ let audioInput: any = null;
 let chatPanelProvider: ChatPanelProvider | null = null;
 let currentResponseChunks: string[] = [];
 let isAccumulatingResponse = false;
+let currentScreenshot: string | null = null;
+let screenshotInterval: NodeJS.Timeout | null = null;
+
+async function captureScreenshot(): Promise<string | null> {
+  try {
+    const img = await screenshotDesktop();
+    
+    const base64Image = img.toString('base64');
+    
+    return base64Image;
+  } catch (error) {
+    console.error('Error capturing screenshot:', error);
+    return null;
+  }
+}
+
+function startContinuousScreenshare() {
+  // Send screenshots at 5 FPS (every 200ms)
+  screenshotInterval = setInterval(async () => {
+    if (!isLiveChat || !connected || !liveSession) {
+      return;
+    }
+
+    try {
+      const screenshot = await captureScreenshot();
+      
+      if (screenshot) {
+        liveSession.sendRealtimeInput({
+          media: {
+            data: screenshot,
+            mimeType: "image/jpeg"
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error in continuous screenshare:', error);
+    }
+  }, 200);
+}
+
+function stopContinuousScreenshare() {
+  if (screenshotInterval) {
+    clearInterval(screenshotInterval);
+    screenshotInterval = null;
+  }
+}
 
 export function registerToggleMicCommand(
   context: vscode.ExtensionContext,
@@ -38,6 +85,12 @@ async function startLiveVoiceChat(context: vscode.ExtensionContext, geminiApi: G
       return;
     }
 
+    if (chatPanelProvider) {
+      chatPanelProvider.addMessage('🚀 Starting live screenshare...', 'model');
+    }
+
+    const screenshotPromise = captureScreenshot();
+
     isLiveChat = true;
     responseQueue = [];
     connected = true;
@@ -48,7 +101,7 @@ async function startLiveVoiceChat(context: vscode.ExtensionContext, geminiApi: G
     const model = 'gemini-2.0-flash-exp';
     const config = {
       responseModalities: [Modality.TEXT],
-      systemInstruction: "You are a helpful voice assistant integrated into VS Code. Listen to the user's speech and respond with helpful, concise text responses about coding, development, or general assistance. Keep your responses clear and focused. Always acknowledge what the user said before responding.",
+      systemInstruction: "You are a helpful voice assistant with live screenshare capability integrated into VS Code. You are receiving the user's screen at 5 frames per second in real-time and can hear their voice simultaneously. You can see live updates of their screen as they work. Analyze the current visual context and respond to their spoken questions about what they're seeing right now. Help with coding, debugging, explaining code, navigating the interface, or any development tasks. Always reference what you can currently see on their screen. Keep responses clear and actionable.",
       mediaResolution: MediaResolution.MEDIA_RESOLUTION_MEDIUM,
       contextWindowCompression: {
         triggerTokens: '25600',
@@ -67,9 +120,6 @@ async function startLiveVoiceChat(context: vscode.ExtensionContext, geminiApi: G
       model: model,
       callbacks: {
         onopen: function () {
-          if (chatPanelProvider) {
-            chatPanelProvider.addMessage('🎙️ Voice chat started', 'model');
-          }
         },
         onmessage: function (message) {
           responseQueue.push(message);
@@ -79,20 +129,46 @@ async function startLiveVoiceChat(context: vscode.ExtensionContext, geminiApi: G
         onerror: function (e) {
           connected = false;
           isLiveChat = false;
+          stopContinuousScreenshare();
         },
         onclose: function (e) {
           if (chatPanelProvider) {
-            chatPanelProvider.addMessage('🎙️ Voice chat ended', 'model');
+            chatPanelProvider.addMessage('🎙️ Live screenshare ended', 'model');
           }
           connected = false;
           isLiveChat = false;
+          stopContinuousScreenshare();
         },
       },
       config: config,
     });
 
-    await startLiveMicrophone();
+    await Promise.all([
+      (async () => {
+        try {
+          currentScreenshot = await screenshotPromise;
+          
+          if (currentScreenshot && liveSession) {
+            liveSession.sendRealtimeInput({
+              media: {
+                data: currentScreenshot,
+                mimeType: "image/jpeg"
+              }
+            });
+          }
+        } catch (error) {
+          console.error('Error sending initial screenshot to Gemini:', error);
+        }
+      })(),
+      
+      startLiveMicrophone()
+    ]);
 
+    startContinuousScreenshare();
+
+    if (chatPanelProvider) {
+      chatPanelProvider.addMessage('🎙️📺 Live screenshare at 5 FPS ready - ask anything!', 'model');
+    }
     processResponseQueue();
 
   } catch (error) {
@@ -162,6 +238,8 @@ async function stopLiveVoiceChat() {
     isLiveChat = false;
     connected = false;
 
+    stopContinuousScreenshare();
+
     if (audioInput) {
       audioInput.stop();
       audioInput = null;
@@ -175,6 +253,7 @@ async function stopLiveVoiceChat() {
     responseQueue = [];
     currentResponseChunks = [];
     isAccumulatingResponse = false;
+    currentScreenshot = null;
 
   } catch (error) {
     console.error('Error stopping live voice chat:', error);

@@ -5,39 +5,106 @@ import { ChatPanelProvider } from '../views/chatPanel/chatPanel';
 import NodeMic from 'node-mic';
 import screenshotDesktop from 'screenshot-desktop';
 
-let isLiveChat = false;
+// Live API session state
+let isLiveAPIActive = false;
 let liveSession: any = null;
 let responseQueue: any[] = [];
 let connected = false;
+
+// Audio streaming components
 let audioInput: any = null;
+
+// Video streaming components  
+let screenshotInterval: NodeJS.Timeout | null = null;
+let currentScreenshot: string | null = null;
+
+// Chat integration
 let chatPanelProvider: ChatPanelProvider | null = null;
 let currentResponseChunks: string[] = [];
 let isAccumulatingResponse = false;
-let currentScreenshot: string | null = null;
-let screenshotInterval: NodeJS.Timeout | null = null;
 
-async function captureScreenshot(): Promise<string | null> {
+// ====== AUDIO STREAMING FUNCTIONS ======
+
+async function startAudioStreaming() {
+  try {
+    audioInput = new NodeMic({
+      rate: 16000,
+      channels: 1,
+      threshold: 6
+    });
+
+    const audioStream = audioInput.getAudioStream();
+
+    audioStream.on('data', (chunk: Buffer) => {
+      if (isLiveAPIActive && connected && liveSession) {
+        try {
+          const base64Audio = chunk.toString('base64');
+
+          liveSession.sendRealtimeInput({
+            media: {
+              data: base64Audio,
+              mimeType: "audio/pcm"
+            }
+          });
+        } catch (error) {
+          console.error('Error streaming audio to Gemini:', error);
+        }
+      }
+    });
+
+    audioStream.on('error', (error: any) => {
+      console.error('Audio streaming error:', error);
+      vscode.window.showErrorMessage(`Audio error: ${error.message}`);
+    });
+
+    audioStream.on('started', () => {
+    });
+
+    audioStream.on('stopped', () => {
+    });
+
+    audioStream.on('silence', () => {
+    });
+
+    audioStream.on('exit', (code: number) => {
+    });
+
+    audioInput.start();
+
+  } catch (error) {
+    console.error('Error starting audio streaming:', error);
+    throw error;
+  }
+}
+
+function stopAudioStreaming() {
+  if (audioInput) {
+    audioInput.stop();
+    audioInput = null;
+  }
+}
+
+// ====== VIDEO STREAMING FUNCTIONS ======
+
+async function captureScreen(): Promise<string | null> {
   try {
     const img = await screenshotDesktop();
-    
     const base64Image = img.toString('base64');
-    
     return base64Image;
   } catch (error) {
-    console.error('Error capturing screenshot:', error);
+    console.error('Error capturing screen:', error);
     return null;
   }
 }
 
-function startContinuousScreenshare() {
-  // Send screenshots at 5 FPS (every 200ms)
+function startVideoStreaming() {
   screenshotInterval = setInterval(async () => {
-    if (!isLiveChat || !connected || !liveSession) {
+    if (!isLiveAPIActive || !connected || !liveSession) {
       return;
     }
 
     try {
-      const screenshot = await captureScreenshot();
+      const screenshot = await captureScreen();
       
       if (screenshot) {
         liveSession.sendRealtimeInput({
@@ -48,35 +115,21 @@ function startContinuousScreenshare() {
         });
       }
     } catch (error) {
-      console.error('Error in continuous screenshare:', error);
+      console.error('Error in video streaming:', error);
     }
   }, 200);
 }
 
-function stopContinuousScreenshare() {
+function stopVideoStreaming() {
   if (screenshotInterval) {
     clearInterval(screenshotInterval);
     screenshotInterval = null;
   }
 }
 
-export function registerToggleMicCommand(
-  context: vscode.ExtensionContext,
-  geminiApi: GeminiApi,
-  chatPanel: ChatPanelProvider
-): vscode.Disposable {
-  return vscode.commands.registerCommand('geminibot.toggleMic', async () => {
-    chatPanelProvider = chatPanel;
+// ====== LIVE API SESSION MANAGEMENT ======
 
-    if (!isLiveChat) {
-      await startLiveVoiceChat(context, geminiApi);
-    } else {
-      await stopLiveVoiceChat();
-    }
-  });
-}
-
-async function startLiveVoiceChat(context: vscode.ExtensionContext, geminiApi: GeminiApi) {
+async function startLiveAPISession(context: vscode.ExtensionContext, geminiApi: GeminiApi) {
   try {
     const apiKey = await geminiApi.getApiKey();
 
@@ -85,13 +138,9 @@ async function startLiveVoiceChat(context: vscode.ExtensionContext, geminiApi: G
       return;
     }
 
-    if (chatPanelProvider) {
-      chatPanelProvider.addMessage('🚀 Starting live screenshare...', 'model');
-    }
+    const screenshotPromise = captureScreen();
 
-    const screenshotPromise = captureScreenshot();
-
-    isLiveChat = true;
+    isLiveAPIActive = true;
     responseQueue = [];
     connected = true;
     currentResponseChunks = [];
@@ -101,7 +150,7 @@ async function startLiveVoiceChat(context: vscode.ExtensionContext, geminiApi: G
     const model = 'gemini-2.0-flash-exp';
     const config = {
       responseModalities: [Modality.TEXT],
-      systemInstruction: "You are a helpful voice assistant with live screenshare capability integrated into VS Code. You are receiving the user's screen at 5 frames per second in real-time and can hear their voice simultaneously. You can see live updates of their screen as they work. Analyze the current visual context and respond to their spoken questions about what they're seeing right now. Help with coding, debugging, explaining code, navigating the interface, or any development tasks. Always reference what you can currently see on their screen. Keep responses clear and actionable.",
+      systemInstruction: "You are a live AI assistant with real-time audio and video capabilities integrated into VS Code. You are receiving the user's screen at 5 frames per second and hearing their voice simultaneously. You can see live updates of their screen as they work and respond to their spoken questions in real-time. Help with coding, debugging, explaining code, navigating interfaces, or any development tasks. Always reference what you can currently see and hear. Keep responses clear and actionable.",
       mediaResolution: MediaResolution.MEDIA_RESOLUTION_MEDIUM,
       contextWindowCompression: {
         triggerTokens: '25600',
@@ -123,21 +172,22 @@ async function startLiveVoiceChat(context: vscode.ExtensionContext, geminiApi: G
         },
         onmessage: function (message) {
           responseQueue.push(message);
-
           processGeminiResponse(message);
         },
         onerror: function (e) {
           connected = false;
-          isLiveChat = false;
-          stopContinuousScreenshare();
+          isLiveAPIActive = false;
+          stopVideoStreaming();
+          stopAudioStreaming();
         },
         onclose: function (e) {
           if (chatPanelProvider) {
-            chatPanelProvider.addMessage('🎙️ Live screenshare ended', 'model');
+            chatPanelProvider.addMessage('🎙️ Live API session ended', 'model');
           }
           connected = false;
-          isLiveChat = false;
-          stopContinuousScreenshare();
+          isLiveAPIActive = false;
+          stopVideoStreaming();
+          stopAudioStreaming();
         },
       },
       config: config,
@@ -161,89 +211,31 @@ async function startLiveVoiceChat(context: vscode.ExtensionContext, geminiApi: G
         }
       })(),
       
-      startLiveMicrophone()
+      startAudioStreaming()
     ]);
 
-    startContinuousScreenshare();
+    startVideoStreaming();
 
     if (chatPanelProvider) {
-      chatPanelProvider.addMessage('🎙️📺 Live screenshare at 5 FPS ready - ask anything!', 'model');
+      chatPanelProvider.addMessage('🎙️📺 Live API ready - audio + Screenshare streaming', 'model');
     }
     processResponseQueue();
 
   } catch (error) {
-    console.error('❌ Error starting live voice chat:', error);
-    vscode.window.showErrorMessage(`Failed to start live voice chat: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    isLiveChat = false;
+    console.error('Error starting live API session:', error);
+    vscode.window.showErrorMessage(`Failed to start live API session: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    isLiveAPIActive = false;
     connected = false;
   }
 }
 
-
-
-async function startLiveMicrophone() {
+async function stopLiveAPISession() {
   try {
-    audioInput = new NodeMic({
-      rate: 16000,
-      channels: 1,
-      threshold: 6
-    });
-
-    const audioStream = audioInput.getAudioStream();
-
-    audioStream.on('data', (chunk: Buffer) => {
-      if (isLiveChat && connected && liveSession) {
-        try {
-          const base64Audio = chunk.toString('base64');
-
-          liveSession.sendRealtimeInput({
-            media: {
-              data: base64Audio,
-              mimeType: "audio/pcm"
-            }
-          });
-        } catch (error) {
-          console.error('Error streaming audio to Gemini:', error);
-        }
-      }
-    });
-
-    audioStream.on('error', (error: any) => {
-      console.error('🎤 Live microphone error:', error);
-      vscode.window.showErrorMessage(`Microphone error: ${error.message}`);
-    });
-
-    audioStream.on('started', () => {
-    });
-
-    audioStream.on('stopped', () => {
-    });
-
-    audioStream.on('silence', () => {
-    });
-
-    audioStream.on('exit', (code: number) => {
-    });
-
-    audioInput.start();
-
-  } catch (error) {
-    console.error('Error starting live microphone:', error);
-    throw error;
-  }
-}
-
-async function stopLiveVoiceChat() {
-  try {
-    isLiveChat = false;
+    isLiveAPIActive = false;
     connected = false;
 
-    stopContinuousScreenshare();
-
-    if (audioInput) {
-      audioInput.stop();
-      audioInput = null;
-    }
+    stopVideoStreaming();
+    stopAudioStreaming();
 
     if (liveSession) {
       liveSession.close();
@@ -256,9 +248,11 @@ async function stopLiveVoiceChat() {
     currentScreenshot = null;
 
   } catch (error) {
-    console.error('Error stopping live voice chat:', error);
+    console.error('Error stopping live API session:', error);
   }
 }
+
+// ====== RESPONSE PROCESSING ======
 
 function processGeminiResponse(message: any) {
   try {
@@ -303,12 +297,12 @@ function processGeminiResponse(message: any) {
     }
 
     if (message.error) {
-      console.error('❌ Error in message:', message.error);
-      chatPanelProvider.addMessage('❌ Voice chat error occurred', 'model');
+      console.error('Error in message:', message.error);
+      chatPanelProvider.addMessage('❌ Live API error occurred', 'model');
     }
 
   } catch (error) {
-    console.error('❌ Error processing Gemini response:', error);
+    console.error('Error processing Gemini response:', error);
     if (chatPanelProvider) {
       chatPanelProvider.addMessage('❌ Processing error', 'model');
     }
@@ -316,7 +310,7 @@ function processGeminiResponse(message: any) {
 }
 
 async function processResponseQueue() {
-  while (isLiveChat && connected) {
+  while (isLiveAPIActive && connected) {
     try {
       if (responseQueue.length > 0) {
         const message = responseQueue.shift();
@@ -329,4 +323,22 @@ async function processResponseQueue() {
       console.error('Error in response queue processing:', error);
     }
   }
+}
+
+// ====== COMMAND REGISTRATION ======
+
+export function registerToggleLiveAPICommand(
+  context: vscode.ExtensionContext,
+  geminiApi: GeminiApi,
+  chatPanel: ChatPanelProvider
+): vscode.Disposable {
+  return vscode.commands.registerCommand('geminibot.toggleLiveAPI', async () => {
+    chatPanelProvider = chatPanel;
+
+    if (!isLiveAPIActive) {
+      await startLiveAPISession(context, geminiApi);
+    } else {
+      await stopLiveAPISession();
+    }
+  });
 }

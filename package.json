@@ -65,9 +65,9 @@
         "icon": "media/icon-noBG-cropped.svg"
       },
       {
-        "command": "geminibot.toggleMic",
-        "title": "Toggle Microphone",
-        "icon": "$(mic)"
+        "command": "geminibot.toggleLiveAPI",
+        "title": "Toggle Live API",
+        "icon": "$(broadcast)"
       }
     ],
     "keybindings": [
@@ -112,7 +112,7 @@
           "group": "navigation"
         },
         {
-          "command": "geminibot.toggleMic",
+          "command": "geminibot.toggleLiveAPI",
           "when": "view == geminibotChatView",
           "group": "navigation"
         }

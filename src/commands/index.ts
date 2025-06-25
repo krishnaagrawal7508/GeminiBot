@@ -8,7 +8,7 @@ import { registerSetApiKeyCommand } from './setApiKey';
 import { registerRemoveApiKeyCommand } from './removeApiKey';
 import { registerOpenSettingsCommand } from './openSettings';
 import { registerOpenPanelCommand } from './openPanel';
-import { registerToggleMicCommand } from './toggleMic';
+import { registerToggleLiveAPICommand } from './toggleLiveAPI';
 
 export function registerCommands(
   context: vscode.ExtensionContext,
@@ -26,7 +26,7 @@ export function registerCommands(
       registerRemoveApiKeyCommand(context, geminiApi),
       registerOpenSettingsCommand(),  
       registerOpenPanelCommand(),   
-      registerToggleMicCommand(context, geminiApi, chatPanelProvider),
+      registerToggleLiveAPICommand(context, geminiApi, chatPanelProvider),
       
       vscode.commands.registerCommand('geminibot.clearChat', () => {
         try {

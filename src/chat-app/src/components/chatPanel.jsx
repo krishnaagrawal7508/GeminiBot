@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { marked } from 'marked';
 import { fileIcons } from '../utils/fileIcons.jsx';
-import { escape } from 'lodash';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/vs2015.css';
 
@@ -10,17 +9,19 @@ const MessageContent = ({ content, vscode }) => {
     const renderer = new marked.Renderer();
     let codeBlockIndex = 0;
 
-    renderer.code = (code, language) => {
+    renderer.code = (code, ) => {
         const id = `code-block-${codeBlockIndex++}`;
-        const lang = language || 'text';
-        const escapedCode = escape(code.text);
+
+        const lang = hljs.getLanguage(code.lang) ? code.lang : 'text';
+
+        const highlightedCode = hljs.highlight(code.text, { language: lang }).value;
 
         return `<div class="code-block-container" data-code="${encodeURIComponent(code)}" data-lang="${lang}" data-id="${id}">
             <div class="code-block-header">
                 <span class="code-language">${lang}</span>
                 <button class="copy-button" data-copy-id="${id}">Copy</button>
             </div>
-            <pre><code class="language-${lang}">${escapedCode}</code></pre>
+            <pre><code class="language-${lang} hljs">${highlightedCode}</code></pre>
         </div>`;
     };
 
@@ -31,42 +32,34 @@ const MessageContent = ({ content, vscode }) => {
     });
 
     const htmlContent = marked.parse(content);
-    console.log("HTMLcontent: " + htmlContent);
 
     useEffect(() => {
         const timer = setTimeout(() => {
-            document.querySelectorAll('.code-block-container pre code').forEach((block) => {
-                if (!block.dataset.highlighted) {
-                    hljs.highlightElement(block);
-                    block.dataset.highlighted = 'true';
-                }
-            });
 
+            // Attach copy button handlers
             const copyButtons = document.querySelectorAll('.code-block-container .copy-button');
-            console.log('Found copy buttons:', copyButtons.length);
-            
-            copyButtons.forEach((button, ) => {
+
+            copyButtons.forEach((button,) => {
                 button.onclick = null;
-                
+
                 button.onclick = (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    
+
                     const container = button.closest('.code-block-container');
                     if (!container) {
                         console.error('Container not found');
                         return;
                     }
-                    
+
                     const codeElement = container.querySelector('pre code');
-                    console.log('Code element:', codeElement);
                     if (!codeElement) {
                         console.error('Code element not found');
                         return;
                     }
 
                     const escapedCode = codeElement.textContent;
-                    
+
                     if (vscode) {
                         vscode.postMessage({
                             command: 'copyToClipboard',
@@ -77,7 +70,7 @@ const MessageContent = ({ content, vscode }) => {
                     }
                 };
             });
-        }, 100);
+        }, 300); // Increased timeout to 300ms for better DOM readiness
 
         return () => clearTimeout(timer);
     }, [htmlContent, vscode]);

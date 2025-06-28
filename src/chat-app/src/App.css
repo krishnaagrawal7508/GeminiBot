@@ -361,7 +361,7 @@ body {
 }
 
 .code-block-container pre {
-    background-color: #000000;
+    background-color: #282c34 !important;
     padding: 10px;
     margin: 0;
     border: none;
@@ -375,9 +375,15 @@ body {
 }
 
 .code-block-container code {
-    color: #ffffff;
     font-family: inherit;
     white-space: pre;
+    background: transparent !important;
+}
+
+/* Let highlight.js handle the styling */
+.code-block-container .hljs {
+    background: transparent !important;
+    padding: 0 !important;
 }
 
 /* Inline code */

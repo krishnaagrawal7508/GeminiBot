@@ -1,34 +1,26 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { marked } from 'marked';
 import { fileIcons } from '../utils/fileIcons.jsx';
+import { escape } from 'lodash';
+import hljs from 'highlight.js';
+import 'highlight.js/styles/vs2015.css';
 
-// Custom component to render message content with copy buttons for code blocks
-const MessageContent = ({ content }) => {
-    const [copiedIndex, setCopiedIndex] = useState(null);
+const MessageContent = ({ content, vscode }) => {
 
-    const copyToClipboard = async (text, index) => {
-        try {
-            await navigator.clipboard.writeText(text);
-            setCopiedIndex(index);
-            setTimeout(() => setCopiedIndex(null), 2000);
-        } catch (err) {
-            console.error('Failed to copy text: ', err);
-        }
-    };
-
-    // Configure marked to add unique IDs to code blocks
     const renderer = new marked.Renderer();
     let codeBlockIndex = 0;
-    
+
     renderer.code = (code, language) => {
         const id = `code-block-${codeBlockIndex++}`;
         const lang = language || 'text';
+        const escapedCode = escape(code.text);
+
         return `<div class="code-block-container" data-code="${encodeURIComponent(code)}" data-lang="${lang}" data-id="${id}">
             <div class="code-block-header">
                 <span class="code-language">${lang}</span>
                 <button class="copy-button" data-copy-id="${id}">Copy</button>
             </div>
-            <pre><code class="language-${lang}">${code}</code></pre>
+            <pre><code class="language-${lang}">${escapedCode}</code></pre>
         </div>`;
     };
 
@@ -39,29 +31,56 @@ const MessageContent = ({ content }) => {
     });
 
     const htmlContent = marked.parse(content);
+    console.log("HTMLcontent: " + htmlContent);
 
     useEffect(() => {
-        // Add click handlers to copy buttons after content is rendered
-        const copyButtons = document.querySelectorAll('.copy-button');
-        copyButtons.forEach((button, index) => {
-            button.onclick = () => {
-                const container = button.closest('.code-block-container');
-                const code = decodeURIComponent(container.getAttribute('data-code'));
-                copyToClipboard(code, index);
-            };
-        });
+        const timer = setTimeout(() => {
+            document.querySelectorAll('.code-block-container pre code').forEach((block) => {
+                if (!block.dataset.highlighted) {
+                    hljs.highlightElement(block);
+                    block.dataset.highlighted = 'true';
+                }
+            });
 
-        // Update button text for copied state
-        copyButtons.forEach((button, index) => {
-            if (copiedIndex === index) {
-                button.textContent = 'Copied!';
-                button.classList.add('copied');
-            } else {
-                button.textContent = 'Copy';
-                button.classList.remove('copied');
-            }
-        });
-    }, [htmlContent, copiedIndex]);
+            const copyButtons = document.querySelectorAll('.code-block-container .copy-button');
+            console.log('Found copy buttons:', copyButtons.length);
+            
+            copyButtons.forEach((button, ) => {
+                button.onclick = null;
+                
+                button.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const container = button.closest('.code-block-container');
+                    if (!container) {
+                        console.error('Container not found');
+                        return;
+                    }
+                    
+                    const codeElement = container.querySelector('pre code');
+                    console.log('Code element:', codeElement);
+                    if (!codeElement) {
+                        console.error('Code element not found');
+                        return;
+                    }
+
+                    const escapedCode = codeElement.textContent;
+                    
+                    if (vscode) {
+                        vscode.postMessage({
+                            command: 'copyToClipboard',
+                            payload: escapedCode,
+                        });
+                    } else {
+                        console.error('VSCode API not available');
+                    }
+                };
+            });
+        }, 100);
+
+        return () => clearTimeout(timer);
+    }, [htmlContent, vscode]);
 
     return <div dangerouslySetInnerHTML={{ __html: htmlContent }} />;
 };
@@ -75,7 +94,7 @@ const ChatPanel = () => {
     const [messages, setMessages] = useState([
         { text: 'Hello! I\'m your AI coding assistant. How can I help you today?', role: 'model' }
     ]);
-    const [fileQuery, setFileQuery] = useState('');
+    const [, setFileQuery] = useState('');
     const [allFiles, setAllFiles] = useState([]);
     const [page, setPage] = useState(1);
     const [selectedIndex, setSelectedIndex] = useState(0);
@@ -243,6 +262,8 @@ const ChatPanel = () => {
                     <div className="welcome-content">
                         <h1>Welcome to GeminiBot</h1>
                         <p>AI-powered coding assistant</p>
+                        <img src="https://i.postimg.cc/SNkVRk6w/icon-no-BG.png" alt="icon" style={{ border: 0 }} />
+                        <p>Please set your Gemini API key to use the chat feature.</p>
                         <button className="setup-button" onClick={handleSetApiKey}>
                             Set API Key
                         </button>
@@ -261,11 +282,11 @@ const ChatPanel = () => {
                                     )}
                                 </div>
                                 <div className="message-content">
-                                    <MessageContent content={msg.text} />
+                                    <MessageContent content={msg.text} vscode={vscode} />
                                 </div>
                             </div>
                         ))}
-                        
+
                         {isLoading && (
                             <div className="message-wrapper model">
                                 <div className="message-avatar">
@@ -300,7 +321,7 @@ const ChatPanel = () => {
                                 ))}
                             </div>
                         )}
-                        
+
                         <div className="input-container">
                             <textarea
                                 ref={inputRef}
@@ -311,13 +332,13 @@ const ChatPanel = () => {
                                 onKeyDown={handleKeyDown}
                                 disabled={isLoading}
                             />
-                            <button 
-                                className={`send-button ${isLoading ? 'disabled' : ''}`} 
-                                onClick={sendMessage} 
+                            <button
+                                className={`send-button ${isLoading ? 'disabled' : ''}`}
+                                onClick={sendMessage}
                                 disabled={isLoading}
                             >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                                    <path d="M2 21L23 12L2 3V10L17 12L2 14V21Z" fill="currentColor"/>
+                                    <path d="M2 21L23 12L2 3V10L17 12L2 14V21Z" fill="currentColor" />
                                 </svg>
                             </button>
                         </div>

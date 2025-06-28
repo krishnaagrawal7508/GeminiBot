@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { marked } from 'marked';
 import { fileIcons } from '../utils/fileIcons.jsx';
 import hljs from 'highlight.js';
-import 'highlight.js/styles/vs2015.css';
+import 'highlight.js/styles/github-dark.css';
 
 const MessageContent = ({ content, vscode }) => {
 
@@ -99,7 +99,7 @@ const ChatPanel = () => {
         vscode?.postMessage({ command: 'checkApiKey' });
         window.addEventListener('message', handleVSCodeMessage);
         return () => window.removeEventListener('message', handleVSCodeMessage);
-    }, []);
+    },);
 
     const handleVSCodeMessage = (event) => {
         const { command, ...message } = event.data;

@@ -60,6 +60,9 @@ export class ChatPanelProvider implements vscode.WebviewViewProvider {
                 case 'getFileContent':
                     await this.getFileContent(message.filePath);
                     break;
+                case 'copyToClipboard':
+                    await vscode.env.clipboard.writeText(message.payload);
+                    break;
             }
         });
 
@@ -261,7 +264,7 @@ export class ChatPanelProvider implements vscode.WebviewViewProvider {
 
             html = html.replace(/(?:src|href)="([^"]+)"/g, (match, assetPath) => {
                 if (assetPath.startsWith('http') || assetPath.startsWith('data:')) {
-                    return match; 
+                    return match;
                 }
 
                 let fullPath;

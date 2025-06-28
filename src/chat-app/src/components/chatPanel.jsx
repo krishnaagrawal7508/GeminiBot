@@ -2,6 +2,70 @@ import React, { useEffect, useRef, useState } from 'react';
 import { marked } from 'marked';
 import { fileIcons } from '../utils/fileIcons.jsx';
 
+// Custom component to render message content with copy buttons for code blocks
+const MessageContent = ({ content }) => {
+    const [copiedIndex, setCopiedIndex] = useState(null);
+
+    const copyToClipboard = async (text, index) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            setCopiedIndex(index);
+            setTimeout(() => setCopiedIndex(null), 2000);
+        } catch (err) {
+            console.error('Failed to copy text: ', err);
+        }
+    };
+
+    // Configure marked to add unique IDs to code blocks
+    const renderer = new marked.Renderer();
+    let codeBlockIndex = 0;
+    
+    renderer.code = (code, language) => {
+        const id = `code-block-${codeBlockIndex++}`;
+        const lang = language || 'text';
+        return `<div class="code-block-container" data-code="${encodeURIComponent(code)}" data-lang="${lang}" data-id="${id}">
+            <div class="code-block-header">
+                <span class="code-language">${lang}</span>
+                <button class="copy-button" data-copy-id="${id}">Copy</button>
+            </div>
+            <pre><code class="language-${lang}">${code}</code></pre>
+        </div>`;
+    };
+
+    marked.setOptions({
+        renderer: renderer,
+        breaks: true,
+        gfm: true
+    });
+
+    const htmlContent = marked.parse(content);
+
+    useEffect(() => {
+        // Add click handlers to copy buttons after content is rendered
+        const copyButtons = document.querySelectorAll('.copy-button');
+        copyButtons.forEach((button, index) => {
+            button.onclick = () => {
+                const container = button.closest('.code-block-container');
+                const code = decodeURIComponent(container.getAttribute('data-code'));
+                copyToClipboard(code, index);
+            };
+        });
+
+        // Update button text for copied state
+        copyButtons.forEach((button, index) => {
+            if (copiedIndex === index) {
+                button.textContent = 'Copied!';
+                button.classList.add('copied');
+            } else {
+                button.textContent = 'Copy';
+                button.classList.remove('copied');
+            }
+        });
+    }, [htmlContent, copiedIndex]);
+
+    return <div dangerouslySetInnerHTML={{ __html: htmlContent }} />;
+};
+
 const ChatPanel = () => {
     const inputRef = useRef(null);
     const messagesRef = useRef(null);
@@ -9,7 +73,7 @@ const ChatPanel = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [apiKeySet, setApiKeySet] = useState(false);
     const [messages, setMessages] = useState([
-        { text: 'how can I help you?', role: 'model' }
+        { text: 'Hello! I\'m your AI coding assistant. How can I help you today?', role: 'model' }
     ]);
     const [fileQuery, setFileQuery] = useState('');
     const [allFiles, setAllFiles] = useState([]);
@@ -36,8 +100,6 @@ const ChatPanel = () => {
             setIsLoading(false);
         } else if (command === 'clearChat') setMessages([]);
         else if (command === 'workspaceFiles') {
-            console.log('Received files:', message.files);
-            console.log('Received files:', message.files);
             setAllFiles(message.files || []);
             setPage(1);
             setSelectedIndex(0);
@@ -45,7 +107,7 @@ const ChatPanel = () => {
     };
 
     useEffect(() => {
-        messagesRef.current?.scrollTo({ top: messagesRef.current.scrollHeight });
+        messagesRef.current?.scrollTo({ top: messagesRef.current.scrollHeight, behavior: 'smooth' });
     }, [messages]);
 
     const addMessage = (text, role) => {
@@ -59,7 +121,7 @@ const ChatPanel = () => {
     const handleInputChange = (e) => {
         const text = e.target.value;
         inputRef.current.style.height = 'auto';
-        inputRef.current.style.height = inputRef.current.scrollHeight + 'px';
+        inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 120) + 'px';
 
         const cursor = inputRef.current.selectionStart;
         const beforeCursor = text.substring(0, cursor);
@@ -175,50 +237,54 @@ const ChatPanel = () => {
     };
 
     return (
-        <div id="chat-container">
+        <div className="chat-panel">
             {!apiKeySet ? (
-                <div id="api-key-container" className="api-key-warning">
-                    <h1>Welcome To GeminiBot</h1>
-                    <p>AI-powered coding assistant, driven by Google's Gemini</p>
-                    <img src="https://i.postimg.cc/SNkVRk6w/icon-no-BG.png" alt="icon" style={{ border: 0 }} />
-                    <p>Please set your Gemini API key to use the chat feature.</p>
-                    <button className="api-key-button" onClick={handleSetApiKey}>
-                        Set API Key
-                    </button>
+                <div className="welcome-screen">
+                    <div className="welcome-content">
+                        <h1>Welcome to GeminiBot</h1>
+                        <p>AI-powered coding assistant</p>
+                        <button className="setup-button" onClick={handleSetApiKey}>
+                            Set API Key
+                        </button>
+                    </div>
                 </div>
             ) : (
-                <div id="chat-interface">
-                    <div id="messages" ref={messagesRef}>
+                <div className="chat-interface">
+                    <div className="messages-container" ref={messagesRef}>
                         {messages.map((msg, i) => (
-                            <div
-                                key={i}
-                                className={`message ${msg.role}-message`}
-                                dangerouslySetInnerHTML={{ __html: marked.parse(msg.text) }}
-                            />
+                            <div key={i} className={`message-wrapper ${msg.role}`}>
+                                <div className="message-avatar">
+                                    {msg.role === 'user' ? (
+                                        <div className="user-avatar">U</div>
+                                    ) : (
+                                        <div className="bot-avatar">AI</div>
+                                    )}
+                                </div>
+                                <div className="message-content">
+                                    <MessageContent content={msg.text} />
+                                </div>
+                            </div>
                         ))}
+                        
                         {isLoading && (
-                            <div className="loading" id="loading-indicator">
-                                Gemini is thinking
-                                <div className="loading-dots">
-                                    <span></span><span></span><span></span>
+                            <div className="message-wrapper model">
+                                <div className="message-avatar">
+                                    <div className="bot-avatar">AI</div>
+                                </div>
+                                <div className="thinking-indicator">
+                                    <div className="thinking-dots">
+                                        <span></span>
+                                        <span></span>
+                                        <span></span>
+                                    </div>
                                 </div>
                             </div>
                         )}
                     </div>
 
-                    <div id="input-container">
-                        <textarea
-                            ref={inputRef}
-                            id="message-input"
-                            placeholder="Use @ to reference files ..."
-                            rows={1}
-                            onChange={handleInputChange}
-                            onKeyDown={handleKeyDown}
-                        />
-                        <button id="send-button" onClick={sendMessage} disabled={isLoading}>Send</button>
-
+                    <div className="input-area">
                         {allFiles.length > 0 && (
-                            <div id="file-suggestions">
+                            <div className="file-suggestions">
                                 {paginatedFiles().map((file, i) => (
                                     <div
                                         key={i}
@@ -232,28 +298,29 @@ const ChatPanel = () => {
                                         <div className="file-path">{file.path}</div>
                                     </div>
                                 ))}
-                                {allFiles.length > filesPerPage && (
-                                    <div className="file-pagination">
-                                        <div className="file-pagination-text">
-                                            Showing {(page - 1) * filesPerPage + 1}
-                                            {Math.min(page * filesPerPage, allFiles.length)} of {allFiles.length}
-                                        </div>
-                                        <div className="file-pagination-buttons">
-                                            <button
-                                                className="pagination-button prev-button"
-                                                disabled={page === 1}
-                                                onClick={() => changePage(-1)}
-                                            >Prev</button>
-                                            <button
-                                                className="pagination-button next-button"
-                                                disabled={page === Math.ceil(allFiles.length / filesPerPage)}
-                                                onClick={() => changePage(1)}
-                                            >Next</button>
-                                        </div>
-                                    </div>
-                                )}
                             </div>
                         )}
+                        
+                        <div className="input-container">
+                            <textarea
+                                ref={inputRef}
+                                className="message-input"
+                                placeholder="Ask me anything about your code..."
+                                rows={1}
+                                onChange={handleInputChange}
+                                onKeyDown={handleKeyDown}
+                                disabled={isLoading}
+                            />
+                            <button 
+                                className={`send-button ${isLoading ? 'disabled' : ''}`} 
+                                onClick={sendMessage} 
+                                disabled={isLoading}
+                            >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                    <path d="M2 21L23 12L2 3V10L17 12L2 14V21Z" fill="currentColor"/>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

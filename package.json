@@ -2,7 +2,7 @@
   "name": "geminibot",
   "displayName": "GeminiAiBot",
   "description": "AI coding assistant powered by Google's Gemini",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "publisher": "KrisnaAgraw",
   "engines": {
     "vscode": "^1.60.0"

@@ -105,7 +105,7 @@ function startVideoStreaming() {
 
     try {
       const screenshot = await captureScreen();
-      
+
       if (screenshot) {
         liveSession.sendRealtimeInput({
           media: {
@@ -150,7 +150,19 @@ async function startLiveAPISession(context: vscode.ExtensionContext, geminiApi: 
     const model = 'gemini-2.0-flash-exp';
     const config = {
       responseModalities: [Modality.TEXT],
-      systemInstruction: "You are a live AI assistant with real-time audio and video capabilities integrated into VS Code. You are receiving the user's screen at 5 frames per second and hearing their voice simultaneously. You can see live updates of their screen as they work and respond to their spoken questions in real-time. Help with coding, debugging, explaining code, navigating interfaces, or any development tasks. Always reference what you can currently see and hear. Keep responses clear and actionable.",
+      systemInstruction: `You are a live AI assistant with real-time audio and video capabilities integrated into VS Code. 
+        IMPORTANT: You must ALWAYS follow this EXACT format for EVERY response:
+        1. First line must ALWAYS start with "transcription: " followed by the transcribed audio
+        2. Second line must be a blank line
+        3. Third line onwards will be your response
+        
+        Example format:
+        transcription: <exact transcribed audio>
+
+        <your response>
+
+        You will respond to the user's screen as they work and their spoken questions in real-time. Help with coding, debugging, explaining code, navigating interfaces, or any development tasks. 
+        Always reference what you can currently see and hear. Keep responses clear and actionable.`,
       mediaResolution: MediaResolution.MEDIA_RESOLUTION_MEDIUM,
       contextWindowCompression: {
         triggerTokens: '25600',
@@ -197,7 +209,7 @@ async function startLiveAPISession(context: vscode.ExtensionContext, geminiApi: 
       (async () => {
         try {
           currentScreenshot = await screenshotPromise;
-          
+
           if (currentScreenshot && liveSession) {
             liveSession.sendRealtimeInput({
               media: {
@@ -210,7 +222,7 @@ async function startLiveAPISession(context: vscode.ExtensionContext, geminiApi: 
           console.error('Error sending initial screenshot to Gemini:', error);
         }
       })(),
-      
+
       startAudioStreaming()
     ]);
 
@@ -261,13 +273,12 @@ function processGeminiResponse(message: any) {
     }
 
     if (message.serverContent && message.serverContent.modelTurn && message.serverContent.modelTurn.parts) {
-      message.serverContent.modelTurn.parts.forEach((part: any, index: number) => {
+      message.serverContent.modelTurn.parts.forEach((part: any) => {
         if (part.text) {
           if (!isAccumulatingResponse) {
             isAccumulatingResponse = true;
             currentResponseChunks = [];
           }
-
           currentResponseChunks.push(part.text);
         }
       });
@@ -278,16 +289,30 @@ function processGeminiResponse(message: any) {
         const combinedResponse = currentResponseChunks.join('').trim();
 
         if (combinedResponse) {
-          chatPanelProvider.addMessage(combinedResponse, 'model');
+          if (combinedResponse.startsWith('🎙️')) {
+            chatPanelProvider.addMessage(combinedResponse, 'model');
+          } else {
+            const parts = combinedResponse.split(/transcription:\s*/i);
+            
+            if (parts.length > 1) {
+              const content = parts[1];
+              const [transcription, ...responseParts] = content.split('\n\n');
+              
+              if (transcription) {
+                chatPanelProvider.addMessage(transcription.trim(), 'user');
+                const response = responseParts.join('\n\n').trim();
+                if (response) {
+                  chatPanelProvider.addMessage(response, 'model');
+                }
+              }
+            } else {
+              chatPanelProvider.addMessage(combinedResponse, 'model');
+            }
+          }
         }
 
         currentResponseChunks = [];
         isAccumulatingResponse = false;
-      }
-    }
-
-    if (message.setupComplete) {
-      if (chatPanelProvider) {
       }
     }
 
